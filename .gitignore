@@ -67,6 +67,9 @@ yarn-error.log
 # testing
 /coverage
 
+# Generated from .env
+src/config/env.generated.ts
+
 # Yarn
 .yarn/*
 !.yarn/patches

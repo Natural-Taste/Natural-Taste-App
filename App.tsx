@@ -11,6 +11,8 @@ import {
   useColorScheme,
   View,
 } from 'react-native';
+import WebView from 'react-native-webview';
+import {KAKAO_JAVASCRIPT_KEY} from './src/config/env.generated';
 
 type AuthMode = 'login' | 'signup';
 
@@ -537,31 +539,53 @@ function MapPreview({
   selectedRestaurant: Restaurant | null;
   onSelectRestaurant: (restaurant: Restaurant) => void;
 }) {
+  const [mapError, setMapError] = useState('');
+  const mapHtml = useMemo(
+    () => createKakaoMapHtml(restaurants, selectedRestaurant),
+    [restaurants, selectedRestaurant],
+  );
+
   return (
     <View style={styles.mapCard}>
       <View style={styles.mapHeader}>
         <Text style={styles.sectionTitle}>지도 영역</Text>
-        <Text style={styles.mapHint}>Kakao Map SDK 연결 전 임시 화면</Text>
+        <Text style={styles.mapHint}>카카오 지도에 검색 결과가 표시됩니다.</Text>
       </View>
       <View style={styles.mapCanvas}>
-        {restaurants.length === 0 ? (
+        {!KAKAO_JAVASCRIPT_KEY ? (
+          <Text style={styles.emptyText}>App/.env에 KAKAO_JAVASCRIPT_KEY를 넣어주세요.</Text>
+        ) : mapError ? (
+          <Text style={styles.emptyText}>{mapError}</Text>
+        ) : restaurants.length === 0 ? (
           <Text style={styles.emptyText}>검색 결과가 지도 핀으로 표시됩니다.</Text>
         ) : (
-          restaurants.slice(0, 6).map((restaurant, index) => {
-            const selected = selectedRestaurant?.id === restaurant.id;
-            return (
-              <Pressable
-                key={getRestaurantKey(restaurant)}
-                style={[
-                  styles.mapPin,
-                  getPinPosition(index),
-                  selected ? styles.mapPinActive : null,
-                ]}
-                onPress={() => onSelectRestaurant(restaurant)}>
-                <Text style={styles.mapPinText}>{index + 1}</Text>
-              </Pressable>
-            );
-          })
+          <WebView
+            originWhitelist={['*']}
+            source={{html: mapHtml, baseUrl: 'https://localhost'}}
+            javaScriptEnabled
+            domStorageEnabled
+            scrollEnabled={false}
+            style={styles.mapWebView}
+            onLoadStart={() => setMapError('')}
+            onError={() =>
+              setMapError('카카오 지도 WebView를 불러오지 못했습니다.')
+            }
+            onHttpError={() =>
+              setMapError('카카오 지도 SDK 요청에 실패했습니다.')
+            }
+            onMessage={event => {
+              if (event.nativeEvent.data.startsWith('error:')) {
+                setMapError(event.nativeEvent.data.replace('error:', ''));
+                return;
+              }
+
+              const index = Number(event.nativeEvent.data);
+              const restaurant = restaurants[index];
+              if (restaurant) {
+                onSelectRestaurant(restaurant);
+              }
+            }}
+          />
         )}
       </View>
     </View>
@@ -941,17 +965,143 @@ function toSaveRestaurantBody(restaurant: Restaurant) {
   };
 }
 
-function getPinPosition(index: number) {
-  const positions = [
-    {left: '18%', top: '22%'},
-    {left: '62%', top: '28%'},
-    {left: '42%', top: '48%'},
-    {left: '76%', top: '58%'},
-    {left: '24%', top: '67%'},
-    {left: '54%', top: '76%'},
-  ];
+function createKakaoMapHtml(
+  restaurants: Restaurant[],
+  selectedRestaurant: Restaurant | null,
+) {
+  const markers = restaurants.slice(0, 30).map((restaurant, index) => ({
+    index,
+    name: restaurant.name,
+    address: restaurant.address,
+    latitude: restaurant.latitude,
+    longitude: restaurant.longitude,
+    selected: selectedRestaurant
+      ? getRestaurantKey(restaurant) === getRestaurantKey(selectedRestaurant)
+      : index === 0,
+  }));
+  const firstRestaurant = selectedRestaurant ?? restaurants[0];
+  const latitude = firstRestaurant?.latitude ?? 37.5665;
+  const longitude = firstRestaurant?.longitude ?? 126.978;
 
-  return positions[index % positions.length];
+  return `
+<!doctype html>
+<html>
+  <head>
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <style>
+      html, body, #map {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      .label {
+        min-width: 28px;
+        height: 28px;
+        padding: 0 8px;
+        border: 2px solid #fff;
+        border-radius: 16px;
+        background: #49624A;
+        color: #fff;
+        font: 800 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 28px;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
+        transform: translate(-50%, -100%);
+        white-space: nowrap;
+      }
+      .label.selected {
+        background: #23251F;
+      }
+      .message {
+        box-sizing: border-box;
+        width: 100%;
+        height: 100%;
+        padding: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #505449;
+        background: #DDE7D7;
+        font: 700 14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.5;
+        text-align: center;
+      }
+    </style>
+    <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=${escapeHtml(KAKAO_JAVASCRIPT_KEY)}&autoload=false"></script>
+  </head>
+  <body>
+    <div id="map"><div class="message">카카오 지도를 불러오는 중입니다.</div></div>
+    <script>
+      const markers = ${JSON.stringify(markers)};
+      let loaded = false;
+
+      function showError(message) {
+        document.getElementById('map').innerHTML = '<div class="message">' + message + '</div>';
+        if (window.ReactNativeWebView) {
+          window.ReactNativeWebView.postMessage('error:' + message);
+        }
+      }
+
+      if (!window.kakao || !window.kakao.maps) {
+        showError('카카오 지도 SDK를 불러오지 못했습니다. JavaScript 키와 Web 플랫폼 도메인을 확인해 주세요.');
+      } else {
+        setTimeout(function () {
+          if (!loaded) {
+            showError('카카오 지도 초기화가 지연되고 있습니다. JavaScript 키와 Web 플랫폼 도메인을 확인해 주세요.');
+          }
+        }, 4000);
+
+        kakao.maps.load(function () {
+          try {
+            loaded = true;
+            const center = new kakao.maps.LatLng(${latitude}, ${longitude});
+            const map = new kakao.maps.Map(document.getElementById('map'), {
+              center,
+              level: 4
+            });
+            const bounds = new kakao.maps.LatLngBounds();
+
+            markers.forEach(function (item) {
+              const position = new kakao.maps.LatLng(item.latitude, item.longitude);
+              bounds.extend(position);
+
+              const element = document.createElement('button');
+              element.className = 'label' + (item.selected ? ' selected' : '');
+              element.type = 'button';
+              element.textContent = String(item.index + 1);
+              element.onclick = function () {
+                window.ReactNativeWebView.postMessage(String(item.index));
+              };
+
+              new kakao.maps.CustomOverlay({
+                position,
+                content: element,
+                yAnchor: 1
+              }).setMap(map);
+            });
+
+            if (markers.length > 1) {
+              map.setBounds(bounds);
+            }
+          } catch (error) {
+            showError('카카오 지도를 표시하지 못했습니다. JavaScript 키와 Web 플랫폼 도메인을 확인해 주세요.');
+          }
+        });
+      }
+    </script>
+  </body>
+</html>`;
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }
 
 const styles = StyleSheet.create({
@@ -1185,26 +1335,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'relative',
   },
-  mapPin: {
-    alignItems: 'center',
-    backgroundColor: '#49624A',
-    borderColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 2,
-    height: 32,
-    justifyContent: 'center',
-    position: 'absolute',
-    width: 32,
-  },
-  mapPinActive: {
-    backgroundColor: '#23251F',
-    height: 38,
-    width: 38,
-  },
-  mapPinText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '900',
+  mapWebView: {
+    height: 230,
+    width: '100%',
   },
   listStack: {
     gap: 10,
