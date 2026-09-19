@@ -43,6 +43,9 @@ type Message = {
 
 const API_BASE_URL =
   Platform.OS === 'android' ? 'http://10.0.2.2:8080' : 'http://localhost:8080';
+const KAKAO_MAP_BASE_URL = 'https://localhost';
+const KAKAO_MAP_DOMAIN_ERROR =
+  '카카오 Developers > 앱 > 플랫폼 키 > JavaScript key > JavaScript SDK domain에 https://localhost를 등록해 주세요.';
 
 const emptyMessage: Message = {
   tone: 'info',
@@ -561,17 +564,18 @@ function MapPreview({
         ) : (
           <WebView
             originWhitelist={['*']}
-            source={{html: mapHtml, baseUrl: 'https://localhost'}}
+            source={{html: mapHtml, baseUrl: KAKAO_MAP_BASE_URL}}
             javaScriptEnabled
             domStorageEnabled
             scrollEnabled={false}
-            style={styles.mapWebView}
+            containerStyle={styles.mapWebView}
+            style={styles.mapWebViewContent}
             onLoadStart={() => setMapError('')}
             onError={() =>
               setMapError('카카오 지도 WebView를 불러오지 못했습니다.')
             }
             onHttpError={() =>
-              setMapError('카카오 지도 SDK 요청에 실패했습니다.')
+              setMapError(KAKAO_MAP_DOMAIN_ERROR)
             }
             onMessage={event => {
               if (event.nativeEvent.data.startsWith('error:')) {
@@ -1045,11 +1049,11 @@ function createKakaoMapHtml(
       }
 
       if (!window.kakao || !window.kakao.maps) {
-        showError('카카오 지도 SDK를 불러오지 못했습니다. JavaScript 키와 Web 플랫폼 도메인을 확인해 주세요.');
+        showError('${KAKAO_MAP_DOMAIN_ERROR}');
       } else {
         setTimeout(function () {
           if (!loaded) {
-            showError('카카오 지도 초기화가 지연되고 있습니다. JavaScript 키와 Web 플랫폼 도메인을 확인해 주세요.');
+            showError('${KAKAO_MAP_DOMAIN_ERROR}');
           }
         }, 4000);
 
@@ -1086,7 +1090,7 @@ function createKakaoMapHtml(
               map.setBounds(bounds);
             }
           } catch (error) {
-            showError('카카오 지도를 표시하지 못했습니다. JavaScript 키와 Web 플랫폼 도메인을 확인해 주세요.');
+            showError('${KAKAO_MAP_DOMAIN_ERROR}');
           }
         });
       }
@@ -1336,8 +1340,14 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   mapWebView: {
-    height: 230,
-    width: '100%',
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
+  mapWebViewContent: {
+    flex: 1,
   },
   listStack: {
     gap: 10,
