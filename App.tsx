@@ -17,7 +17,7 @@ import WebView from 'react-native-webview';
 import {KAKAO_JAVASCRIPT_KEY} from './src/config/env.generated';
 
 type AuthMode = 'login' | 'signup';
-type ActivePanel = 'map' | 'community' | 'mypage';
+type ActivePanel = 'map' | 'community' | 'search' | 'mypage';
 
 type AuthResponse = {
   userId: number;
@@ -58,6 +58,18 @@ type CommunityComment = {
   postId: number;
   authorId: number;
   content: string;
+  createdAt: string;
+};
+
+type FriendUser = {
+  id: number;
+  email: string;
+  name: string;
+};
+
+type FriendRequest = {
+  id: number;
+  requester: FriendUser;
   createdAt: string;
 };
 
@@ -105,6 +117,12 @@ function App() {
   const [postImageUrl, setPostImageUrl] = useState('');
   const [communityComments, setCommunityComments] = useState<CommunityComment[]>([]);
   const [commentContent, setCommentContent] = useState('');
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [searchedUsers, setSearchedUsers] = useState<FriendUser[]>([]);
+  const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
+  const [friends, setFriends] = useState<FriendUser[]>([]);
+  const [selectedFriend, setSelectedFriend] = useState<FriendUser | null>(null);
+  const [friendRestaurants, setFriendRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<Message>(emptyMessage);
 
@@ -134,6 +152,15 @@ function App() {
       })),
     [restaurants, savedIdSet, savedPlaceSet],
   );
+
+  const resetFriendState = () => {
+    setUserSearchQuery('');
+    setSearchedUsers([]);
+    setFriendRequests([]);
+    setFriends([]);
+    setSelectedFriend(null);
+    setFriendRestaurants([]);
+  };
 
   const submitAuth = async () => {
     setLoading(true);
@@ -196,6 +223,7 @@ function App() {
       setPostImageUrl('');
       setCommunityComments([]);
       setCommentContent('');
+      resetFriendState();
       setMessage({tone: 'success', text: '로그아웃되었습니다.'});
       setLoading(false);
     }
@@ -252,6 +280,7 @@ function App() {
       setPostImageUrl('');
       setCommunityComments([]);
       setCommentContent('');
+      resetFriendState();
       setMessage({tone: 'success', text: '회원탈퇴가 완료되었습니다.'});
     } catch (error) {
       setMessage({
@@ -388,6 +417,192 @@ function App() {
     setPostDraftRestaurant(null);
     setActivePanel('community');
     await loadCommunityPosts();
+  };
+
+  const openSearch = async () => {
+    setSelectedRestaurant(null);
+    setSelectedCommunityPost(null);
+    setPostWriting(false);
+    setPostDraftRestaurant(null);
+    setPostPlaceQuery('');
+    setPostPlaceResults([]);
+    setCommunityComments([]);
+    setCommentContent('');
+    setActivePanel('search');
+    await Promise.all([loadFriendRequests(), loadFriends()]);
+  };
+
+  const searchUsers = async () => {
+    if (!auth || !userSearchQuery.trim()) {
+      setMessage({tone: 'error', text: '사용자 검색어를 입력해 주세요.'});
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const data = await request<FriendUser[]>(
+        `/users/search?query=${encodeURIComponent(userSearchQuery.trim())}`,
+        {auth},
+      );
+      setSearchedUsers(data);
+      setMessage({
+        tone: 'success',
+        text:
+          data.length > 0
+            ? `${data.length}명의 사용자를 찾았습니다.`
+            : '검색 결과가 없습니다.',
+      });
+    } catch (error) {
+      setMessage({
+        tone: 'error',
+        text: getErrorMessage(error, '사용자 검색에 실패했습니다.'),
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const requestFriend = async (user: FriendUser) => {
+    if (!auth) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await request('/friends/requests', {
+        method: 'POST',
+        auth,
+        body: {receiverId: user.id},
+      });
+      setSearchedUsers(current => current.filter(item => item.id !== user.id));
+      setMessage({tone: 'success', text: '친구 요청을 보냈습니다.'});
+    } catch (error) {
+      setMessage({
+        tone: 'error',
+        text: getErrorMessage(error, '친구 요청에 실패했습니다.'),
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadFriendRequests = async () => {
+    if (!auth) {
+      return;
+    }
+
+    try {
+      const data = await request<FriendRequest[]>('/friends/requests/received', {
+        auth,
+      });
+      setFriendRequests(data);
+    } catch (error) {
+      setMessage({
+        tone: 'error',
+        text: getErrorMessage(error, '친구 요청 조회에 실패했습니다.'),
+      });
+    }
+  };
+
+  const loadFriends = async () => {
+    if (!auth) {
+      return;
+    }
+
+    try {
+      const data = await request<FriendUser[]>('/friends', {auth});
+      setFriends(data);
+    } catch (error) {
+      setMessage({
+        tone: 'error',
+        text: getErrorMessage(error, '친구 목록 조회에 실패했습니다.'),
+      });
+    }
+  };
+
+  const acceptFriendRequest = async (friendRequest: FriendRequest) => {
+    if (!auth) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const accepted = await request<FriendUser>(
+        `/friends/requests/${friendRequest.id}/accept`,
+        {method: 'POST', auth},
+      );
+      setFriendRequests(current => current.filter(item => item.id !== friendRequest.id));
+      setFriends(current => [
+        accepted,
+        ...current.filter(item => item.id !== accepted.id),
+      ]);
+      setMessage({tone: 'success', text: '친구 요청을 수락했습니다.'});
+    } catch (error) {
+      setMessage({
+        tone: 'error',
+        text: getErrorMessage(error, '친구 요청 수락에 실패했습니다.'),
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const rejectFriendRequest = async (friendRequest: FriendRequest) => {
+    if (!auth) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await request(`/friends/requests/${friendRequest.id}`, {
+        method: 'DELETE',
+        auth,
+      });
+      setFriendRequests(current => current.filter(item => item.id !== friendRequest.id));
+      setMessage({tone: 'success', text: '친구 요청을 거절했습니다.'});
+    } catch (error) {
+      setMessage({
+        tone: 'error',
+        text: getErrorMessage(error, '친구 요청 거절에 실패했습니다.'),
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const selectFriend = async (friend: FriendUser | null) => {
+    if (!auth) {
+      return;
+    }
+
+    setSelectedFriend(friend);
+    setFriendRestaurants([]);
+    if (!friend) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const data = await request<Restaurant[]>(
+        `/friends/${friend.id}/restaurants/saved`,
+        {auth},
+      );
+      setFriendRestaurants(data);
+      setMessage({
+        tone: 'success',
+        text:
+          data.length > 0
+            ? `${friend.name}님의 맛집 리스트를 불러왔습니다.`
+            : `${friend.name}님이 저장한 맛집이 없습니다.`,
+      });
+    } catch (error) {
+      setMessage({
+        tone: 'error',
+        text: getErrorMessage(error, '친구 맛집 조회에 실패했습니다.'),
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const loadCommunityPosts = async () => {
@@ -708,6 +923,12 @@ function App() {
           postImageUrl={postImageUrl}
           communityComments={communityComments}
           commentContent={commentContent}
+          userSearchQuery={userSearchQuery}
+          searchedUsers={searchedUsers}
+          friendRequests={friendRequests}
+          friends={friends}
+          selectedFriend={selectedFriend}
+          friendRestaurants={friendRestaurants}
           savedIdSet={savedIdSet}
           activePanel={activePanel}
           userId={auth.userId}
@@ -731,6 +952,13 @@ function App() {
             setActivePanel('map');
           }}
           onOpenCommunity={openCommunity}
+          onOpenSearch={openSearch}
+          onSearchUsers={searchUsers}
+          onRequestFriend={requestFriend}
+          onAcceptFriendRequest={acceptFriendRequest}
+          onRejectFriendRequest={rejectFriendRequest}
+          onSelectFriend={selectFriend}
+          onChangeUserSearchQuery={setUserSearchQuery}
           onSelectCommunityPost={selectCommunityPost}
           onSaveCommunityRestaurant={saveCommunityRestaurant}
           onToggleCommunityRecommendation={toggleCommunityRecommendation}
@@ -755,6 +983,8 @@ function App() {
             setPostPlaceResults([]);
             setCommunityComments([]);
             setCommentContent('');
+            setSelectedFriend(null);
+            setFriendRestaurants([]);
             setActivePanel('mypage');
           }}
           onChangeCurrentPassword={setCurrentPassword}
@@ -810,6 +1040,12 @@ function MapHome({
   postImageUrl,
   communityComments,
   commentContent,
+  userSearchQuery,
+  searchedUsers,
+  friendRequests,
+  friends,
+  selectedFriend,
+  friendRestaurants,
   savedIdSet,
   activePanel,
   userId,
@@ -821,6 +1057,13 @@ function MapHome({
   onToggleSaved,
   onOpenMap,
   onOpenCommunity,
+  onOpenSearch,
+  onSearchUsers,
+  onRequestFriend,
+  onAcceptFriendRequest,
+  onRejectFriendRequest,
+  onSelectFriend,
+  onChangeUserSearchQuery,
   onSelectCommunityPost,
   onSaveCommunityRestaurant,
   onToggleCommunityRecommendation,
@@ -860,6 +1103,12 @@ function MapHome({
   postImageUrl: string;
   communityComments: CommunityComment[];
   commentContent: string;
+  userSearchQuery: string;
+  searchedUsers: FriendUser[];
+  friendRequests: FriendRequest[];
+  friends: FriendUser[];
+  selectedFriend: FriendUser | null;
+  friendRestaurants: Restaurant[];
   savedIdSet: Set<number>;
   activePanel: ActivePanel;
   userId: number;
@@ -871,6 +1120,13 @@ function MapHome({
   onToggleSaved: (restaurant: Restaurant) => void;
   onOpenMap: () => void;
   onOpenCommunity: () => void;
+  onOpenSearch: () => void;
+  onSearchUsers: () => void;
+  onRequestFriend: (user: FriendUser) => void;
+  onAcceptFriendRequest: (request: FriendRequest) => void;
+  onRejectFriendRequest: (request: FriendRequest) => void;
+  onSelectFriend: (friend: FriendUser | null) => void;
+  onChangeUserSearchQuery: (value: string) => void;
   onSelectCommunityPost: (post: CommunityPost | null) => void;
   onSaveCommunityRestaurant: (post: CommunityPost) => void;
   onToggleCommunityRecommendation: (post: CommunityPost) => void;
@@ -1028,6 +1284,32 @@ function MapHome({
             showHandle={false}
           />
         </View>
+      ) : activePanel === 'search' ? (
+        <View style={styles.tabScreen}>
+          <TabScreenHeader
+            eyebrow="Search"
+            title="검색"
+            message={message}
+            loading={loading}
+          />
+          <FriendSearchSheet
+            query={userSearchQuery}
+            searchedUsers={searchedUsers}
+            friendRequests={friendRequests}
+            friends={friends}
+            selectedFriend={selectedFriend}
+            friendRestaurants={friendRestaurants}
+            savedRestaurants={savedRestaurants}
+            loading={loading}
+            onChangeQuery={onChangeUserSearchQuery}
+            onSearchUsers={onSearchUsers}
+            onRequestFriend={onRequestFriend}
+            onAcceptRequest={onAcceptFriendRequest}
+            onRejectRequest={onRejectFriendRequest}
+            onSelectFriend={onSelectFriend}
+            onToggleSaved={onToggleSaved}
+          />
+        </View>
       ) : (
         <View style={styles.tabScreen}>
           <TabScreenHeader
@@ -1056,6 +1338,7 @@ function MapHome({
         loading={loading}
         onOpenMap={onOpenMap}
         onOpenCommunity={onOpenCommunity}
+        onOpenSearch={onOpenSearch}
         onOpenMyPage={onOpenMyPage}
       />
     </View>
@@ -1176,12 +1459,14 @@ function BottomTabBar({
   loading,
   onOpenMap,
   onOpenCommunity,
+  onOpenSearch,
   onOpenMyPage,
 }: {
   activePanel: ActivePanel;
   loading: boolean;
   onOpenMap: () => void;
   onOpenCommunity: () => void;
+  onOpenSearch: () => void;
   onOpenMyPage: () => void;
 }) {
   return (
@@ -1197,6 +1482,12 @@ function BottomTabBar({
         active={activePanel === 'community'}
         disabled={loading}
         onPress={onOpenCommunity}
+      />
+      <BottomTabButton
+        label="검색"
+        active={activePanel === 'search'}
+        disabled={loading}
+        onPress={onOpenSearch}
       />
       <BottomTabButton
         label="마이페이지"
@@ -1243,6 +1534,272 @@ function BottomTabButton({
         {label}
       </Text>
     </Pressable>
+  );
+}
+
+function FriendSearchSheet({
+  query,
+  searchedUsers,
+  friendRequests,
+  friends,
+  selectedFriend,
+  friendRestaurants,
+  savedRestaurants,
+  loading,
+  onChangeQuery,
+  onSearchUsers,
+  onRequestFriend,
+  onAcceptRequest,
+  onRejectRequest,
+  onSelectFriend,
+  onToggleSaved,
+}: {
+  query: string;
+  searchedUsers: FriendUser[];
+  friendRequests: FriendRequest[];
+  friends: FriendUser[];
+  selectedFriend: FriendUser | null;
+  friendRestaurants: Restaurant[];
+  savedRestaurants: Restaurant[];
+  loading: boolean;
+  onChangeQuery: (value: string) => void;
+  onSearchUsers: () => void;
+  onRequestFriend: (user: FriendUser) => void;
+  onAcceptRequest: (request: FriendRequest) => void;
+  onRejectRequest: (request: FriendRequest) => void;
+  onSelectFriend: (friend: FriendUser | null) => void;
+  onToggleSaved: (restaurant: Restaurant) => void;
+}) {
+  const savedIdSet = new Set(
+    savedRestaurants
+      .map(restaurant => restaurant.id)
+      .filter((id): id is number => id !== null),
+  );
+
+  return (
+    <ScrollView
+      style={styles.communityWriteScroll}
+      contentContainerStyle={styles.communityWriteContent}
+      showsVerticalScrollIndicator>
+      <Field label="사용자 검색">
+        <View style={styles.inlineSearchRow}>
+          <TextInput
+            style={[styles.input, styles.inlineSearchInput]}
+            placeholder="이름 또는 이메일"
+            value={query}
+            onChangeText={onChangeQuery}
+            returnKeyType="search"
+            onSubmitEditing={onSearchUsers}
+            autoCapitalize="none"
+          />
+          <Pressable
+            style={({pressed}) => [
+              styles.inlineSearchButton,
+              pressed ? styles.pressed : null,
+              loading ? styles.disabled : null,
+            ]}
+            onPress={onSearchUsers}
+            disabled={loading}>
+            <Text style={styles.inlineSearchButtonText}>검색</Text>
+          </Pressable>
+        </View>
+      </Field>
+
+      <FriendSection title="검색 결과" emptyText="검색한 사용자가 여기에 표시됩니다.">
+        {searchedUsers.map(user => (
+          <FriendUserRow
+            key={user.id}
+            user={user}
+            actionLabel="요청"
+            loading={loading}
+            onPress={() => onRequestFriend(user)}
+          />
+        ))}
+      </FriendSection>
+
+      <FriendSection title="받은 친구 요청" emptyText="받은 친구 요청이 없습니다.">
+        {friendRequests.map(friendRequest => (
+          <View key={friendRequest.id} style={styles.friendRow}>
+            <View style={styles.restaurantTextGroup}>
+              <Text style={styles.restaurantName}>{friendRequest.requester.name}</Text>
+              <Text style={styles.restaurantAddress}>{friendRequest.requester.email}</Text>
+              <Text style={styles.postDate}>{formatDate(friendRequest.createdAt)}</Text>
+            </View>
+            <View style={styles.friendActionRow}>
+              <Pressable
+                style={({pressed}) => [
+                  styles.smallActionButton,
+                  pressed ? styles.pressed : null,
+                  loading ? styles.disabled : null,
+                ]}
+                onPress={() => onAcceptRequest(friendRequest)}
+                disabled={loading}>
+                <Text style={styles.smallActionButtonText}>수락</Text>
+              </Pressable>
+              <Pressable
+                style={({pressed}) => [
+                  styles.smallActionButton,
+                  styles.smallActionDangerButton,
+                  pressed ? styles.pressed : null,
+                  loading ? styles.disabled : null,
+                ]}
+                onPress={() => onRejectRequest(friendRequest)}
+                disabled={loading}>
+                <Text
+                  style={[
+                    styles.smallActionButtonText,
+                    styles.smallActionDangerButtonText,
+                  ]}>
+                  거절
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        ))}
+      </FriendSection>
+
+      <FriendSection title="내 친구" emptyText="아직 친구가 없습니다.">
+        {friends.map(friend => (
+          <FriendUserRow
+            key={friend.id}
+            user={friend}
+            actionLabel={
+              selectedFriend?.id === friend.id ? '선택됨' : '맛집 보기'
+            }
+            active={selectedFriend?.id === friend.id}
+            loading={loading}
+            onPress={() => onSelectFriend(friend)}
+          />
+        ))}
+      </FriendSection>
+
+      {selectedFriend ? (
+        <View style={styles.friendSection}>
+          <View style={styles.detailTopRow}>
+            <View style={styles.restaurantTextGroup}>
+              <Text style={styles.savedPlaceTitle}>
+                {selectedFriend.name}님의 맛집 리스트
+              </Text>
+              <Text style={styles.restaurantAddress}>{selectedFriend.email}</Text>
+            </View>
+            <Pressable
+              style={({pressed}) => [
+                styles.closeButton,
+                pressed ? styles.pressed : null,
+              ]}
+              onPress={() => onSelectFriend(null)}>
+              <Text style={styles.closeButtonText}>닫기</Text>
+            </Pressable>
+          </View>
+          {friendRestaurants.length > 0 ? (
+            <View style={styles.listStack}>
+              {friendRestaurants.map(restaurant => {
+                const saved =
+                  restaurant.saved ||
+                  (restaurant.id !== null && savedIdSet.has(restaurant.id)) ||
+                  Boolean(findSavedRestaurant(restaurant, savedRestaurants));
+
+                return (
+                  <View key={getRestaurantKey(restaurant)} style={styles.friendRestaurantRow}>
+                    <View style={styles.restaurantTextGroup}>
+                      <Text style={styles.restaurantName} numberOfLines={1}>
+                        {restaurant.name}
+                      </Text>
+                      <Text style={styles.restaurantMeta} numberOfLines={1}>
+                        {restaurant.category || '카테고리 미정'}
+                      </Text>
+                      <Text style={styles.restaurantAddress} numberOfLines={1}>
+                        {restaurant.address}
+                      </Text>
+                    </View>
+                    <Pressable
+                      style={({pressed}) => [
+                        styles.sheetSaveButton,
+                        saved ? styles.sheetSaveButtonActive : null,
+                        pressed ? styles.pressed : null,
+                        loading || saved ? styles.disabled : null,
+                      ]}
+                      onPress={() => onToggleSaved(restaurant)}
+                      disabled={loading || saved}>
+                      <Text
+                        style={[
+                          styles.sheetSaveButtonText,
+                          saved ? styles.sheetSaveButtonActiveText : null,
+                        ]}>
+                        {saved ? '저장됨' : '저장'}
+                      </Text>
+                    </Pressable>
+                  </View>
+                );
+              })}
+            </View>
+          ) : (
+            <Text style={styles.savedPlaceEmpty}>저장한 맛집이 없습니다.</Text>
+          )}
+        </View>
+      ) : null}
+    </ScrollView>
+  );
+}
+
+function FriendSection({
+  title,
+  emptyText,
+  children,
+}: {
+  title: string;
+  emptyText: string;
+  children: React.ReactNode;
+}) {
+  const childCount = React.Children.count(children);
+
+  return (
+    <View style={styles.friendSection}>
+      <Text style={styles.savedPlaceTitle}>{title}</Text>
+      {childCount > 0 ? <View style={styles.listStack}>{children}</View> : (
+        <Text style={styles.savedPlaceEmpty}>{emptyText}</Text>
+      )}
+    </View>
+  );
+}
+
+function FriendUserRow({
+  user,
+  actionLabel,
+  active = false,
+  loading,
+  onPress,
+}: {
+  user: FriendUser;
+  actionLabel: string;
+  active?: boolean;
+  loading: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <View style={[styles.friendRow, active ? styles.placeResultItemActive : null]}>
+      <View style={styles.restaurantTextGroup}>
+        <Text style={styles.restaurantName}>{user.name}</Text>
+        <Text style={styles.restaurantAddress}>{user.email}</Text>
+      </View>
+      <Pressable
+        style={({pressed}) => [
+          styles.sheetSaveButton,
+          active ? styles.sheetSaveButtonActive : null,
+          pressed ? styles.pressed : null,
+          loading ? styles.disabled : null,
+        ]}
+        onPress={onPress}
+        disabled={loading}>
+        <Text
+          style={[
+            styles.sheetSaveButtonText,
+            active ? styles.sheetSaveButtonActiveText : null,
+          ]}>
+          {actionLabel}
+        </Text>
+      </Pressable>
+    </View>
   );
 }
 
@@ -2568,6 +3125,52 @@ const styles = StyleSheet.create({
     color: '#777B6E',
     fontSize: 13,
     lineHeight: 19,
+  },
+  friendSection: {
+    marginBottom: 18,
+  },
+  friendRow: {
+    alignItems: 'center',
+    backgroundColor: '#FCFBF7',
+    borderColor: '#E4E0D5',
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    padding: 12,
+  },
+  friendActionRow: {
+    gap: 8,
+  },
+  friendRestaurantRow: {
+    alignItems: 'center',
+    backgroundColor: '#FCFBF7',
+    borderColor: '#E4E0D5',
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    padding: 12,
+  },
+  smallActionButton: {
+    alignItems: 'center',
+    borderColor: '#49624A',
+    borderRadius: 8,
+    borderWidth: 1,
+    minWidth: 52,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  smallActionButtonText: {
+    color: '#49624A',
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  smallActionDangerButton: {
+    borderColor: '#D9A09A',
+  },
+  smallActionDangerButtonText: {
+    color: '#B42318',
   },
   placeResultList: {
     gap: 10,
