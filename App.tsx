@@ -346,18 +346,8 @@ function App() {
         saved,
         ...current.filter(item => getRestaurantKey(item) !== getRestaurantKey(saved)),
       ]);
-      setRestaurants(current =>
-        current.map(item =>
-          getRestaurantKey(item) === getRestaurantKey(saved)
-            ? {...item, id: saved.id, saved: true}
-            : item,
-        ),
-      );
-      setSelectedRestaurant(current =>
-        current && getRestaurantKey(current) === getRestaurantKey(saved)
-          ? {...current, id: saved.id, saved: true}
-          : current,
-      );
+      setRestaurants([]);
+      setSelectedRestaurant(null);
       setMessage({tone: 'success', text: '맛집을 저장했습니다.'});
     } catch (error) {
       setMessage({
