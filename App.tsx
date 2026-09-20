@@ -1182,6 +1182,49 @@ function CommunitySheet({
               </Text>
             </View>
           ) : null}
+          <View style={styles.savedPlaceSection}>
+            <Text style={styles.savedPlaceTitle}>내 맛집 리스트</Text>
+            {savedRestaurants.length > 0 ? (
+              <ScrollView
+                style={styles.savedPlaceScroll}
+                contentContainerStyle={styles.savedPlaceList}
+                nestedScrollEnabled
+                showsVerticalScrollIndicator={savedRestaurants.length > 3}>
+                {savedRestaurants.map(restaurant => {
+                  const selected =
+                    draftRestaurant &&
+                    getRestaurantKey(draftRestaurant) === getRestaurantKey(restaurant);
+
+                  return (
+                    <Pressable
+                      key={getRestaurantKey(restaurant)}
+                      style={({pressed}) => [
+                        styles.placeResultItem,
+                        selected ? styles.placeResultItemActive : null,
+                        pressed ? styles.pressed : null,
+                      ]}
+                      onPress={() => onSelectPlace(restaurant)}>
+                      <View style={styles.restaurantTextGroup}>
+                        <Text style={styles.restaurantName} numberOfLines={1}>
+                          {restaurant.name}
+                        </Text>
+                        <Text style={styles.restaurantAddress} numberOfLines={1}>
+                          {restaurant.address}
+                        </Text>
+                      </View>
+                      <Text style={styles.placeSelectText}>
+                        {selected ? '선택됨' : '선택'}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            ) : (
+              <Text style={styles.savedPlaceEmpty}>
+                저장한 맛집이 없으면 장소를 검색해 선택해 주세요.
+              </Text>
+            )}
+          </View>
           {placeResults.length > 0 ? (
             <View style={styles.placeResultList}>
               {placeResults.map(restaurant => {
@@ -2233,6 +2276,26 @@ const styles = StyleSheet.create({
     gap: 4,
     marginBottom: 14,
     padding: 12,
+  },
+  savedPlaceSection: {
+    marginBottom: 14,
+  },
+  savedPlaceTitle: {
+    color: '#505449',
+    fontSize: 13,
+    fontWeight: '800',
+    marginBottom: 8,
+  },
+  savedPlaceList: {
+    gap: 10,
+  },
+  savedPlaceScroll: {
+    maxHeight: 260,
+  },
+  savedPlaceEmpty: {
+    color: '#777B6E',
+    fontSize: 13,
+    lineHeight: 19,
   },
   placeResultList: {
     gap: 10,
