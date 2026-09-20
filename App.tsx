@@ -9,6 +9,7 @@ import {
   Text,
   TextInput,
   useColorScheme,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import WebView from 'react-native-webview';
@@ -66,6 +67,7 @@ function App() {
   const [savedRestaurants, setSavedRestaurants] = useState<Restaurant[]>([]);
   const [selectedRestaurant, setSelectedRestaurant] =
     useState<Restaurant | null>(null);
+  const [accountOpen, setAccountOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<Message>(emptyMessage);
 
@@ -116,6 +118,7 @@ function App() {
       setPassword('');
       setCurrentPassword('');
       setNewPassword('');
+      setAccountOpen(false);
       setMessage({
         tone: 'success',
         text: authMode === 'login' ? '로그인되었습니다.' : '회원가입이 완료되었습니다.',
@@ -146,6 +149,7 @@ function App() {
       setRestaurants([]);
       setSavedRestaurants([]);
       setSelectedRestaurant(null);
+      setAccountOpen(false);
       setMessage({tone: 'success', text: '로그아웃되었습니다.'});
       setLoading(false);
     }
@@ -192,6 +196,7 @@ function App() {
       setRestaurants([]);
       setSavedRestaurants([]);
       setSelectedRestaurant(null);
+      setAccountOpen(false);
       setMessage({tone: 'success', text: '회원탈퇴가 완료되었습니다.'});
     } catch (error) {
       setMessage({
@@ -218,7 +223,7 @@ function App() {
         {auth},
       );
       setRestaurants(data);
-      setSelectedRestaurant(data[0] ?? null);
+      setSelectedRestaurant(null);
       setMessage({
         tone: 'success',
         text:
@@ -290,6 +295,11 @@ function App() {
               : item,
           ),
         );
+        setSelectedRestaurant(current =>
+          current && getRestaurantKey(current) === getRestaurantKey(restaurant)
+            ? {...current, saved: false}
+            : current,
+        );
         setMessage({tone: 'success', text: '저장을 취소했습니다.'});
         return;
       }
@@ -329,77 +339,46 @@ function App() {
   return (
     <View style={styles.safeArea}>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.eyebrow}>FoodMap MVP</Text>
-          <Text style={styles.title}>Natural Taste</Text>
-          <Text style={styles.description}>
-            맛집을 검색하고, 마음에 드는 장소를 내 목록에 저장하세요.
-          </Text>
-        </View>
-
-        <MessageBox message={message} loading={loading} />
-
-        {auth ? (
-          <View style={styles.screenStack}>
-            <SearchPanel
-              query={query}
-              onChangeQuery={setQuery}
-              onSearch={searchRestaurants}
-              loading={loading}
-            />
-            <MapPreview
-              restaurants={visibleRestaurants}
-              selectedRestaurant={selectedRestaurant}
-              onSelectRestaurant={setSelectedRestaurant}
-            />
-            <RestaurantList
-              title="검색 결과"
-              emptyText="검색어를 입력하고 맛집을 찾아보세요."
-              restaurants={visibleRestaurants}
-              selectedRestaurant={selectedRestaurant}
-              savedIdSet={savedIdSet}
-              onSelectRestaurant={setSelectedRestaurant}
-              onToggleSaved={toggleSaved}
-              loading={loading}
-            />
-            <RestaurantDetail
-              restaurant={selectedRestaurant}
-              saved={
-                selectedRestaurant
-                  ? Boolean(
-                      selectedRestaurant.saved ||
-                        findSavedRestaurant(selectedRestaurant, savedRestaurants),
-                    )
-                  : false
-              }
-              onToggleSaved={toggleSaved}
-              loading={loading}
-            />
-            <RestaurantList
-              title="저장한 맛집"
-              emptyText="저장한 맛집이 여기에 표시됩니다."
-              restaurants={savedRestaurants}
-              selectedRestaurant={selectedRestaurant}
-              savedIdSet={savedIdSet}
-              onSelectRestaurant={setSelectedRestaurant}
-              onToggleSaved={toggleSaved}
-              loading={loading}
-              actionLabel="저장 취소"
-            />
-            <AccountPanel
-              userId={auth.userId}
-              currentPassword={currentPassword}
-              newPassword={newPassword}
-              onChangeCurrentPassword={setCurrentPassword}
-              onChangeNewPassword={setNewPassword}
-              onChangePassword={changePassword}
-              onLogout={logout}
-              onDeleteUser={deleteUser}
-              loading={loading}
-            />
+      {auth ? (
+        <MapHome
+          query={query}
+          message={message}
+          loading={loading}
+          restaurants={visibleRestaurants}
+          savedRestaurants={savedRestaurants}
+          selectedRestaurant={selectedRestaurant}
+          savedIdSet={savedIdSet}
+          accountOpen={accountOpen}
+          userId={auth.userId}
+          currentPassword={currentPassword}
+          newPassword={newPassword}
+          onChangeQuery={setQuery}
+          onSearch={searchRestaurants}
+          onSelectRestaurant={setSelectedRestaurant}
+          onToggleSaved={toggleSaved}
+          onCloseDetail={() => setSelectedRestaurant(null)}
+          onOpenAccount={() => {
+            setSelectedRestaurant(null);
+            setAccountOpen(true);
+          }}
+          onCloseAccount={() => setAccountOpen(false)}
+          onChangeCurrentPassword={setCurrentPassword}
+          onChangeNewPassword={setNewPassword}
+          onChangePassword={changePassword}
+          onLogout={logout}
+          onDeleteUser={deleteUser}
+        />
+      ) : (
+        <ScrollView contentContainerStyle={styles.container}>
+          <View style={styles.header}>
+            <Text style={styles.eyebrow}>FoodMap MVP</Text>
+            <Text style={styles.title}>Natural Taste</Text>
+            <Text style={styles.description}>
+              맛집을 검색하고, 마음에 드는 장소를 내 목록에 저장하세요.
+            </Text>
           </View>
-        ) : (
+
+          <MessageBox message={message} loading={loading} />
           <AuthPanel
             mode={authMode}
             email={email}
@@ -412,8 +391,401 @@ function App() {
             onChangeName={setName}
             onSubmit={submitAuth}
           />
+        </ScrollView>
+      )}
+    </View>
+  );
+}
+
+function MapHome({
+  query,
+  message,
+  loading,
+  restaurants,
+  savedRestaurants,
+  selectedRestaurant,
+  savedIdSet,
+  accountOpen,
+  userId,
+  currentPassword,
+  newPassword,
+  onChangeQuery,
+  onSearch,
+  onSelectRestaurant,
+  onToggleSaved,
+  onCloseDetail,
+  onOpenAccount,
+  onCloseAccount,
+  onChangeCurrentPassword,
+  onChangeNewPassword,
+  onChangePassword,
+  onLogout,
+  onDeleteUser,
+}: {
+  query: string;
+  message: Message;
+  loading: boolean;
+  restaurants: Restaurant[];
+  savedRestaurants: Restaurant[];
+  selectedRestaurant: Restaurant | null;
+  savedIdSet: Set<number>;
+  accountOpen: boolean;
+  userId: number;
+  currentPassword: string;
+  newPassword: string;
+  onChangeQuery: (value: string) => void;
+  onSearch: () => void;
+  onSelectRestaurant: (restaurant: Restaurant) => void;
+  onToggleSaved: (restaurant: Restaurant) => void;
+  onCloseDetail: () => void;
+  onOpenAccount: () => void;
+  onCloseAccount: () => void;
+  onChangeCurrentPassword: (value: string) => void;
+  onChangeNewPassword: (value: string) => void;
+  onChangePassword: () => void;
+  onLogout: () => void;
+  onDeleteUser: () => void;
+}) {
+  const {height} = useWindowDimensions();
+  const hasSearchResults = restaurants.length > 0;
+  const mapRestaurants = hasSearchResults ? restaurants : savedRestaurants;
+  const sheetRestaurants = selectedRestaurant
+    ? []
+    : hasSearchResults
+      ? restaurants
+      : savedRestaurants;
+
+  return (
+    <View style={styles.mapHome}>
+      <MapPreview
+        restaurants={mapRestaurants}
+        selectedRestaurant={selectedRestaurant}
+        onSelectRestaurant={onSelectRestaurant}
+      />
+
+      <View style={styles.mapTopPanel}>
+        <View style={styles.mapBrandRow}>
+          <View>
+            <Text style={styles.mapEyebrow}>Natural Taste</Text>
+            <Text style={styles.mapTitle}>내 주변 맛집 지도</Text>
+          </View>
+          <View style={styles.mapHeaderActions}>
+            <Pressable
+              style={({pressed}) => [
+                styles.logoutButton,
+                pressed ? styles.pressed : null,
+                loading ? styles.disabled : null,
+              ]}
+              onPress={onOpenAccount}
+              disabled={loading}>
+              <Text style={styles.logoutButtonText}>계정</Text>
+            </Pressable>
+            <Pressable
+              style={({pressed}) => [
+                styles.logoutButton,
+                pressed ? styles.pressed : null,
+                loading ? styles.disabled : null,
+              ]}
+              onPress={onLogout}
+              disabled={loading}>
+              <Text style={styles.logoutButtonText}>로그아웃</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        <View style={styles.mapSearchBar}>
+          <TextInput
+            style={styles.mapSearchInput}
+            placeholder="지역, 음식, 가게 검색"
+            value={query}
+            onChangeText={onChangeQuery}
+            returnKeyType="search"
+            onSubmitEditing={onSearch}
+          />
+          <Pressable
+            style={({pressed}) => [
+              styles.mapSearchButton,
+              pressed ? styles.pressed : null,
+              loading ? styles.disabled : null,
+            ]}
+            onPress={onSearch}
+            disabled={loading}>
+            <Text style={styles.mapSearchButtonText}>검색</Text>
+          </Pressable>
+        </View>
+
+        <View
+          style={[
+            styles.mapStatus,
+            message.tone === 'error' ? styles.messageError : null,
+            message.tone === 'success' ? styles.messageSuccess : null,
+          ]}>
+          {loading ? <ActivityIndicator color="#49624A" /> : null}
+          <Text style={styles.mapStatusText} numberOfLines={2}>
+            {message.text}
+          </Text>
+        </View>
+      </View>
+
+      <View style={[styles.bottomSheet, {maxHeight: Math.max(230, height * 0.42)}]}>
+        {accountOpen ? (
+          <MapAccountSheet
+            userId={userId}
+            currentPassword={currentPassword}
+            newPassword={newPassword}
+            loading={loading}
+            onChangeCurrentPassword={onChangeCurrentPassword}
+            onChangeNewPassword={onChangeNewPassword}
+            onChangePassword={onChangePassword}
+            onLogout={onLogout}
+            onDeleteUser={onDeleteUser}
+            onClose={onCloseAccount}
+          />
+        ) : selectedRestaurant ? (
+          <MapRestaurantDetail
+            restaurant={selectedRestaurant}
+            saved={Boolean(
+              selectedRestaurant.saved ||
+                findSavedRestaurant(selectedRestaurant, savedRestaurants),
+            )}
+            loading={loading}
+            onToggleSaved={onToggleSaved}
+            onClose={onCloseDetail}
+          />
+        ) : (
+          <MapRestaurantSheet
+            title={hasSearchResults ? '검색 결과' : '저장한 맛집'}
+            emptyText={
+              hasSearchResults
+                ? '검색 결과가 없습니다.'
+                : '저장한 맛집이 지도에 표시됩니다.'
+            }
+            restaurants={sheetRestaurants}
+            savedIdSet={savedIdSet}
+            loading={loading}
+            onSelectRestaurant={onSelectRestaurant}
+            onToggleSaved={onToggleSaved}
+          />
         )}
-      </ScrollView>
+      </View>
+    </View>
+  );
+}
+
+function MapRestaurantSheet({
+  title,
+  emptyText,
+  restaurants,
+  savedIdSet,
+  loading,
+  onSelectRestaurant,
+  onToggleSaved,
+}: {
+  title: string;
+  emptyText: string;
+  restaurants: Restaurant[];
+  savedIdSet: Set<number>;
+  loading: boolean;
+  onSelectRestaurant: (restaurant: Restaurant) => void;
+  onToggleSaved: (restaurant: Restaurant) => void;
+}) {
+  return (
+    <View>
+      <View style={styles.sheetHandle} />
+      <View style={styles.sheetHeader}>
+        <Text style={styles.sheetTitle}>{title}</Text>
+        <Text style={styles.sheetCount}>{restaurants.length}곳</Text>
+      </View>
+      {restaurants.length === 0 ? (
+        <Text style={styles.sheetEmptyText}>{emptyText}</Text>
+      ) : (
+        <ScrollView
+          style={styles.sheetScroll}
+          contentContainerStyle={styles.sheetList}
+          showsVerticalScrollIndicator={false}>
+          {restaurants.map(restaurant => {
+            const saved =
+              restaurant.saved ||
+              (restaurant.id !== null && savedIdSet.has(restaurant.id));
+
+            return (
+              <Pressable
+                key={getRestaurantKey(restaurant)}
+                style={({pressed}) => [
+                  styles.sheetRestaurant,
+                  pressed ? styles.pressed : null,
+                ]}
+                onPress={() => onSelectRestaurant(restaurant)}>
+                <View style={styles.restaurantTextGroup}>
+                  <Text style={styles.restaurantName}>{restaurant.name}</Text>
+                  <Text style={styles.restaurantMeta} numberOfLines={1}>
+                    {restaurant.category || '카테고리 미정'}
+                  </Text>
+                  <Text style={styles.restaurantAddress} numberOfLines={1}>
+                    {restaurant.address}
+                  </Text>
+                </View>
+                <Pressable
+                  style={({pressed}) => [
+                    styles.sheetSaveButton,
+                    saved ? styles.sheetSaveButtonActive : null,
+                    pressed ? styles.pressed : null,
+                    loading ? styles.disabled : null,
+                  ]}
+                  onPress={() => onToggleSaved(restaurant)}
+                  disabled={loading}>
+                  <Text
+                    style={[
+                      styles.sheetSaveButtonText,
+                      saved ? styles.sheetSaveButtonActiveText : null,
+                    ]}>
+                    {saved ? '저장됨' : '저장'}
+                  </Text>
+                </Pressable>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      )}
+    </View>
+  );
+}
+
+function MapRestaurantDetail({
+  restaurant,
+  saved,
+  loading,
+  onToggleSaved,
+  onClose,
+}: {
+  restaurant: Restaurant;
+  saved: boolean;
+  loading: boolean;
+  onToggleSaved: (restaurant: Restaurant) => void;
+  onClose: () => void;
+}) {
+  return (
+    <View>
+      <View style={styles.sheetHandle} />
+      <View style={styles.detailTopRow}>
+        <View style={styles.restaurantTextGroup}>
+          <Text style={styles.detailName}>{restaurant.name}</Text>
+          <Text style={styles.restaurantMeta}>
+            {restaurant.category || '카테고리 미정'}
+          </Text>
+        </View>
+        <Pressable
+          style={({pressed}) => [
+            styles.closeButton,
+            pressed ? styles.pressed : null,
+          ]}
+          onPress={onClose}>
+          <Text style={styles.closeButtonText}>닫기</Text>
+        </Pressable>
+      </View>
+      <Text style={styles.detailLine}>{restaurant.address}</Text>
+      {restaurant.phone ? (
+        <Text style={styles.detailLine}>전화 {restaurant.phone}</Text>
+      ) : null}
+      {restaurant.placeUrl ? (
+        <Text style={styles.detailLine}>장소 URL {restaurant.placeUrl}</Text>
+      ) : null}
+      <PrimaryButton
+        label={saved ? '저장 취소' : '맛집 저장'}
+        onPress={() => onToggleSaved(restaurant)}
+        disabled={loading}
+      />
+    </View>
+  );
+}
+
+function MapAccountSheet({
+  userId,
+  currentPassword,
+  newPassword,
+  loading,
+  onChangeCurrentPassword,
+  onChangeNewPassword,
+  onChangePassword,
+  onLogout,
+  onDeleteUser,
+  onClose,
+}: {
+  userId: number;
+  currentPassword: string;
+  newPassword: string;
+  loading: boolean;
+  onChangeCurrentPassword: (value: string) => void;
+  onChangeNewPassword: (value: string) => void;
+  onChangePassword: () => void;
+  onLogout: () => void;
+  onDeleteUser: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <View>
+      <View style={styles.sheetHandle} />
+      <View style={styles.detailTopRow}>
+        <View style={styles.restaurantTextGroup}>
+          <Text style={styles.sheetTitle}>회원 정보</Text>
+          <Text style={styles.restaurantMeta}>회원 번호 {userId}</Text>
+        </View>
+        <Pressable
+          style={({pressed}) => [
+            styles.closeButton,
+            pressed ? styles.pressed : null,
+          ]}
+          onPress={onClose}>
+          <Text style={styles.closeButtonText}>닫기</Text>
+        </Pressable>
+      </View>
+      <Field label="현재 비밀번호">
+        <TextInput
+          style={styles.input}
+          placeholder="현재 비밀번호"
+          value={currentPassword}
+          onChangeText={onChangeCurrentPassword}
+          secureTextEntry
+        />
+      </Field>
+      <Field label="새 비밀번호">
+        <TextInput
+          style={styles.input}
+          placeholder="새 비밀번호"
+          value={newPassword}
+          onChangeText={onChangeNewPassword}
+          secureTextEntry
+        />
+      </Field>
+      <View style={styles.accountActionGrid}>
+        <PrimaryButton
+          label="비밀번호 수정"
+          onPress={onChangePassword}
+          disabled={loading}
+        />
+        <View style={styles.accountSecondaryRow}>
+          <Pressable
+            style={({pressed}) => [
+              styles.accountSecondaryButton,
+              pressed ? styles.pressed : null,
+              loading ? styles.disabled : null,
+            ]}
+            onPress={onLogout}
+            disabled={loading}>
+            <Text style={styles.accountSecondaryButtonText}>로그아웃</Text>
+          </Pressable>
+          <Pressable
+            style={({pressed}) => [
+              styles.accountDangerButton,
+              pressed ? styles.pressed : null,
+              loading ? styles.disabled : null,
+            ]}
+            onPress={onDeleteUser}
+            disabled={loading}>
+            <Text style={styles.accountDangerButtonText}>회원탈퇴</Text>
+          </Pressable>
+        </View>
+      </View>
     </View>
   );
 }
@@ -493,46 +865,6 @@ function AuthPanel({
   );
 }
 
-function SearchPanel({
-  query,
-  onChangeQuery,
-  onSearch,
-  loading,
-}: {
-  query: string;
-  onChangeQuery: (value: string) => void;
-  onSearch: () => void;
-  loading: boolean;
-}) {
-  return (
-    <View style={styles.card}>
-      <Text style={styles.sectionTitle}>맛집 검색</Text>
-      <Field label="키워드">
-        <View style={styles.searchRow}>
-          <TextInput
-            style={[styles.input, styles.searchInput]}
-            placeholder="예: 성수 파스타"
-            value={query}
-            onChangeText={onChangeQuery}
-            returnKeyType="search"
-            onSubmitEditing={onSearch}
-          />
-          <Pressable
-            style={({pressed}) => [
-              styles.searchButton,
-              pressed ? styles.pressed : null,
-              loading ? styles.disabled : null,
-            ]}
-            onPress={onSearch}
-            disabled={loading}>
-            <Text style={styles.searchButtonText}>검색</Text>
-          </Pressable>
-        </View>
-      </Field>
-    </View>
-  );
-}
-
 function MapPreview({
   restaurants,
   selectedRestaurant,
@@ -550,17 +882,11 @@ function MapPreview({
 
   return (
     <View style={styles.mapCard}>
-      <View style={styles.mapHeader}>
-        <Text style={styles.sectionTitle}>지도 영역</Text>
-        <Text style={styles.mapHint}>카카오 지도에 검색 결과가 표시됩니다.</Text>
-      </View>
       <View style={styles.mapCanvas}>
         {!KAKAO_JAVASCRIPT_KEY ? (
           <Text style={styles.emptyText}>App/.env에 KAKAO_JAVASCRIPT_KEY를 넣어주세요.</Text>
         ) : mapError ? (
           <Text style={styles.emptyText}>{mapError}</Text>
-        ) : restaurants.length === 0 ? (
-          <Text style={styles.emptyText}>검색 결과가 지도 핀으로 표시됩니다.</Text>
         ) : (
           <WebView
             originWhitelist={['*']}
@@ -591,187 +917,6 @@ function MapPreview({
             }}
           />
         )}
-      </View>
-    </View>
-  );
-}
-
-function RestaurantList({
-  title,
-  emptyText,
-  restaurants,
-  selectedRestaurant,
-  savedIdSet,
-  onSelectRestaurant,
-  onToggleSaved,
-  loading,
-  actionLabel,
-}: {
-  title: string;
-  emptyText: string;
-  restaurants: Restaurant[];
-  selectedRestaurant: Restaurant | null;
-  savedIdSet: Set<number>;
-  onSelectRestaurant: (restaurant: Restaurant) => void;
-  onToggleSaved: (restaurant: Restaurant) => void;
-  loading: boolean;
-  actionLabel?: string;
-}) {
-  return (
-    <View style={styles.card}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      {restaurants.length === 0 ? (
-        <Text style={styles.emptyText}>{emptyText}</Text>
-      ) : (
-        <View style={styles.listStack}>
-          {restaurants.map(restaurant => {
-            const selected = selectedRestaurant?.id === restaurant.id;
-            const saved =
-              restaurant.saved ||
-              (restaurant.id !== null && savedIdSet.has(restaurant.id));
-            return (
-              <Pressable
-                key={getRestaurantKey(restaurant)}
-                style={({pressed}) => [
-                  styles.restaurantItem,
-                  selected ? styles.restaurantItemActive : null,
-                  pressed ? styles.pressed : null,
-                ]}
-                onPress={() => onSelectRestaurant(restaurant)}>
-                <View style={styles.restaurantTextGroup}>
-                  <Text style={styles.restaurantName}>{restaurant.name}</Text>
-                  <Text style={styles.restaurantMeta} numberOfLines={1}>
-                    {restaurant.category || '카테고리 미정'}
-                  </Text>
-                  <Text style={styles.restaurantAddress} numberOfLines={2}>
-                    {restaurant.address}
-                  </Text>
-                </View>
-                <Pressable
-                  style={({pressed}) => [
-                    styles.secondaryButton,
-                    saved ? styles.secondaryButtonActive : null,
-                    pressed ? styles.pressed : null,
-                    loading ? styles.disabled : null,
-                  ]}
-                  onPress={() => onToggleSaved(restaurant)}
-                  disabled={loading}>
-                  <Text
-                    style={[
-                      styles.secondaryButtonText,
-                      saved ? styles.secondaryButtonActiveText : null,
-                    ]}>
-                    {actionLabel ?? (saved ? '저장됨' : '저장')}
-                  </Text>
-                </Pressable>
-              </Pressable>
-            );
-          })}
-        </View>
-      )}
-    </View>
-  );
-}
-
-function RestaurantDetail({
-  restaurant,
-  saved,
-  onToggleSaved,
-  loading,
-}: {
-  restaurant: Restaurant | null;
-  saved: boolean;
-  onToggleSaved: (restaurant: Restaurant) => void;
-  loading: boolean;
-}) {
-  if (!restaurant) {
-    return (
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>상세 정보</Text>
-        <Text style={styles.emptyText}>맛집을 선택하면 상세 정보가 표시됩니다.</Text>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.card}>
-      <Text style={styles.sectionTitle}>상세 정보</Text>
-      <Text style={styles.detailName}>{restaurant.name}</Text>
-      <Text style={styles.detailLine}>{restaurant.address}</Text>
-      <Text style={styles.detailLine}>
-        좌표 {restaurant.latitude}, {restaurant.longitude}
-      </Text>
-      {restaurant.phone ? (
-        <Text style={styles.detailLine}>전화 {restaurant.phone}</Text>
-      ) : null}
-      {restaurant.placeUrl ? (
-        <Text style={styles.detailLine}>장소 URL {restaurant.placeUrl}</Text>
-      ) : null}
-      <PrimaryButton
-        label={saved ? '저장 취소' : '맛집 저장'}
-        onPress={() => onToggleSaved(restaurant)}
-        disabled={loading}
-      />
-    </View>
-  );
-}
-
-function AccountPanel({
-  userId,
-  currentPassword,
-  newPassword,
-  loading,
-  onChangeCurrentPassword,
-  onChangeNewPassword,
-  onChangePassword,
-  onLogout,
-  onDeleteUser,
-}: {
-  userId: number;
-  currentPassword: string;
-  newPassword: string;
-  loading: boolean;
-  onChangeCurrentPassword: (value: string) => void;
-  onChangeNewPassword: (value: string) => void;
-  onChangePassword: () => void;
-  onLogout: () => void;
-  onDeleteUser: () => void;
-}) {
-  return (
-    <View style={styles.card}>
-      <Text style={styles.sectionTitle}>회원 정보</Text>
-      <Text style={styles.accountText}>회원 번호 {userId}</Text>
-      <Field label="현재 비밀번호">
-        <TextInput
-          style={styles.input}
-          placeholder="현재 비밀번호"
-          value={currentPassword}
-          onChangeText={onChangeCurrentPassword}
-          secureTextEntry
-        />
-      </Field>
-      <Field label="새 비밀번호">
-        <TextInput
-          style={styles.input}
-          placeholder="새 비밀번호"
-          value={newPassword}
-          onChangeText={onChangeNewPassword}
-          secureTextEntry
-        />
-      </Field>
-      <View style={styles.actionRow}>
-        <PrimaryButton
-          label="비밀번호 수정"
-          onPress={onChangePassword}
-          disabled={loading}
-        />
-        <SecondaryAction label="로그아웃" onPress={onLogout} disabled={loading} />
-        <SecondaryAction
-          label="회원탈퇴"
-          onPress={onDeleteUser}
-          disabled={loading}
-          danger
-        />
       </View>
     </View>
   );
@@ -849,38 +994,6 @@ function PrimaryButton({
       onPress={onPress}
       disabled={disabled}>
       <Text style={styles.primaryButtonText}>{label}</Text>
-    </Pressable>
-  );
-}
-
-function SecondaryAction({
-  label,
-  onPress,
-  disabled,
-  danger,
-}: {
-  label: string;
-  onPress: () => void;
-  disabled?: boolean;
-  danger?: boolean;
-}) {
-  return (
-    <Pressable
-      style={({pressed}) => [
-        styles.secondaryAction,
-        danger ? styles.secondaryActionDanger : null,
-        pressed ? styles.pressed : null,
-        disabled ? styles.disabled : null,
-      ]}
-      onPress={onPress}
-      disabled={disabled}>
-      <Text
-        style={[
-          styles.secondaryActionText,
-          danger ? styles.secondaryActionDangerText : null,
-        ]}>
-        {label}
-      </Text>
     </Pressable>
   );
 }
@@ -1144,6 +1257,248 @@ const styles = StyleSheet.create({
   screenStack: {
     gap: 14,
   },
+  mapHome: {
+    backgroundColor: '#F5F3EA',
+    flex: 1,
+  },
+  mapTopPanel: {
+    left: 16,
+    position: 'absolute',
+    right: 16,
+    top: Platform.OS === 'ios' ? 58 : 28,
+  },
+  mapBrandRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  mapHeaderActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  mapEyebrow: {
+    color: '#49624A',
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+  mapTitle: {
+    color: '#23251F',
+    fontSize: 20,
+    fontWeight: '900',
+    letterSpacing: 0,
+  },
+  logoutButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    borderColor: '#E4E0D5',
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  logoutButtonText: {
+    color: '#505449',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  mapSearchBar: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.96)',
+    borderColor: '#E4E0D5',
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 8,
+    padding: 8,
+    shadowColor: '#3B3528',
+    shadowOffset: {width: 0, height: 10},
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+  },
+  mapSearchInput: {
+    color: '#23251F',
+    flex: 1,
+    fontSize: 16,
+    minHeight: 42,
+    paddingHorizontal: 10,
+  },
+  mapSearchButton: {
+    alignItems: 'center',
+    backgroundColor: '#23251F',
+    borderRadius: 8,
+    justifyContent: 'center',
+    minHeight: 42,
+    paddingHorizontal: 16,
+  },
+  mapSearchButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  mapStatus: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(236, 231, 217, 0.94)',
+    borderColor: '#DDD6C4',
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  mapStatusText: {
+    color: '#3F4438',
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  bottomSheet: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E4E0D5',
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    borderWidth: 1,
+    bottom: 0,
+    left: 0,
+    padding: 16,
+    paddingBottom: Platform.OS === 'ios' ? 26 : 18,
+    position: 'absolute',
+    right: 0,
+    shadowColor: '#3B3528',
+    shadowOffset: {width: 0, height: -10},
+    shadowOpacity: 0.12,
+    shadowRadius: 26,
+  },
+  sheetHandle: {
+    alignSelf: 'center',
+    backgroundColor: '#D8D2C2',
+    borderRadius: 2,
+    height: 4,
+    marginBottom: 14,
+    width: 42,
+  },
+  sheetHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  sheetTitle: {
+    color: '#23251F',
+    fontSize: 20,
+    fontWeight: '900',
+  },
+  sheetCount: {
+    color: '#49624A',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  sheetScroll: {
+    maxHeight: 260,
+  },
+  sheetList: {
+    gap: 10,
+    paddingBottom: 4,
+  },
+  sheetRestaurant: {
+    alignItems: 'center',
+    backgroundColor: '#FCFBF7',
+    borderColor: '#E4E0D5',
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    padding: 12,
+  },
+  sheetSaveButton: {
+    alignItems: 'center',
+    borderColor: '#C9C2B0',
+    borderRadius: 8,
+    borderWidth: 1,
+    minWidth: 68,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+  },
+  sheetSaveButtonActive: {
+    backgroundColor: '#49624A',
+    borderColor: '#49624A',
+  },
+  sheetSaveButtonText: {
+    color: '#49624A',
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  sheetSaveButtonActiveText: {
+    color: '#FFFFFF',
+  },
+  sheetEmptyText: {
+    color: '#777B6E',
+    fontSize: 14,
+    lineHeight: 20,
+    paddingVertical: 22,
+    textAlign: 'center',
+  },
+  detailTopRow: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  closeButton: {
+    borderColor: '#C9C2B0',
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  closeButtonText: {
+    color: '#505449',
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  accountActionGrid: {
+    gap: 10,
+    marginTop: 4,
+  },
+  accountSecondaryRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  accountSecondaryButton: {
+    alignItems: 'center',
+    borderColor: '#C9C2B0',
+    borderRadius: 8,
+    borderWidth: 1,
+    flex: 1,
+    justifyContent: 'center',
+    minHeight: 46,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  accountSecondaryButtonText: {
+    color: '#49624A',
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  accountDangerButton: {
+    alignItems: 'center',
+    borderColor: '#D9A09A',
+    borderRadius: 8,
+    borderWidth: 1,
+    flex: 1,
+    justifyContent: 'center',
+    minHeight: 46,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  accountDangerButtonText: {
+    color: '#B42318',
+    fontSize: 14,
+    fontWeight: '900',
+  },
   card: {
     backgroundColor: '#FFFFFF',
     borderColor: '#E4E0D5',
@@ -1311,15 +1666,13 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   mapCard: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E4E0D5',
-    borderRadius: 8,
-    borderWidth: 1,
+    backgroundColor: '#DDE7D7',
+    bottom: 0,
+    left: 0,
     overflow: 'hidden',
-    shadowColor: '#3B3528',
-    shadowOffset: {width: 0, height: 8},
-    shadowOpacity: 0.06,
-    shadowRadius: 18,
+    position: 'absolute',
+    right: 0,
+    top: 0,
   },
   mapHeader: {
     paddingHorizontal: 18,
@@ -1333,9 +1686,7 @@ const styles = StyleSheet.create({
   mapCanvas: {
     alignItems: 'center',
     backgroundColor: '#DDE7D7',
-    borderTopColor: '#E4E0D5',
-    borderTopWidth: 1,
-    height: 230,
+    flex: 1,
     justifyContent: 'center',
     position: 'relative',
   },
