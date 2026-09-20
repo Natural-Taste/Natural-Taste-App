@@ -16,6 +16,7 @@ import WebView from 'react-native-webview';
 import {KAKAO_JAVASCRIPT_KEY} from './src/config/env.generated';
 
 type AuthMode = 'login' | 'signup';
+type ActivePanel = 'map' | 'community' | 'mypage';
 
 type AuthResponse = {
   userId: number;
@@ -35,6 +36,16 @@ type Restaurant = {
   phone?: string;
   placeUrl?: string;
   saved?: boolean;
+};
+
+type CommunityPost = {
+  id: number;
+  authorId: number;
+  title: string;
+  content: string;
+  restaurant: Restaurant;
+  createdAt: string;
+  updatedAt: string;
 };
 
 type Message = {
@@ -67,7 +78,17 @@ function App() {
   const [savedRestaurants, setSavedRestaurants] = useState<Restaurant[]>([]);
   const [selectedRestaurant, setSelectedRestaurant] =
     useState<Restaurant | null>(null);
-  const [accountOpen, setAccountOpen] = useState(false);
+  const [activePanel, setActivePanel] = useState<ActivePanel>('map');
+  const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>([]);
+  const [selectedCommunityPost, setSelectedCommunityPost] =
+    useState<CommunityPost | null>(null);
+  const [postWriting, setPostWriting] = useState(false);
+  const [postDraftRestaurant, setPostDraftRestaurant] =
+    useState<Restaurant | null>(null);
+  const [postPlaceQuery, setPostPlaceQuery] = useState('');
+  const [postPlaceResults, setPostPlaceResults] = useState<Restaurant[]>([]);
+  const [postTitle, setPostTitle] = useState('');
+  const [postContent, setPostContent] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<Message>(emptyMessage);
 
@@ -118,7 +139,7 @@ function App() {
       setPassword('');
       setCurrentPassword('');
       setNewPassword('');
-      setAccountOpen(false);
+      setActivePanel('map');
       setMessage({
         tone: 'success',
         text: authMode === 'login' ? '로그인되었습니다.' : '회원가입이 완료되었습니다.',
@@ -149,7 +170,13 @@ function App() {
       setRestaurants([]);
       setSavedRestaurants([]);
       setSelectedRestaurant(null);
-      setAccountOpen(false);
+      setActivePanel('map');
+      setCommunityPosts([]);
+      setSelectedCommunityPost(null);
+      setPostWriting(false);
+      setPostDraftRestaurant(null);
+      setPostPlaceQuery('');
+      setPostPlaceResults([]);
       setMessage({tone: 'success', text: '로그아웃되었습니다.'});
       setLoading(false);
     }
@@ -196,7 +223,13 @@ function App() {
       setRestaurants([]);
       setSavedRestaurants([]);
       setSelectedRestaurant(null);
-      setAccountOpen(false);
+      setActivePanel('map');
+      setCommunityPosts([]);
+      setSelectedCommunityPost(null);
+      setPostWriting(false);
+      setPostDraftRestaurant(null);
+      setPostPlaceQuery('');
+      setPostPlaceResults([]);
       setMessage({tone: 'success', text: '회원탈퇴가 완료되었습니다.'});
     } catch (error) {
       setMessage({
@@ -336,6 +369,193 @@ function App() {
     }
   };
 
+  const openCommunity = async () => {
+    setSelectedRestaurant(null);
+    setSelectedCommunityPost(null);
+    setPostWriting(false);
+    setPostDraftRestaurant(null);
+    setActivePanel('community');
+    await loadCommunityPosts();
+  };
+
+  const loadCommunityPosts = async () => {
+    if (!auth) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const data = await request<CommunityPost[]>('/community/posts', {auth});
+      setCommunityPosts(data);
+      setMessage({
+        tone: 'success',
+        text:
+          data.length > 0
+            ? '커뮤니티 게시글을 불러왔습니다.'
+            : '아직 커뮤니티 게시글이 없습니다.',
+      });
+    } catch (error) {
+      setMessage({
+        tone: 'error',
+        text: getErrorMessage(error, '커뮤니티 조회에 실패했습니다.'),
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const startCommunityPost = () => {
+    setSelectedCommunityPost(null);
+    setPostWriting(true);
+    setPostDraftRestaurant(null);
+    setPostPlaceQuery('');
+    setPostPlaceResults([]);
+    setPostTitle('');
+    setPostContent('');
+    setActivePanel('community');
+  };
+
+  const cancelCommunityPost = () => {
+    setPostWriting(false);
+    setPostDraftRestaurant(null);
+    setPostPlaceQuery('');
+    setPostPlaceResults([]);
+    setPostTitle('');
+    setPostContent('');
+  };
+
+  const searchCommunityPostPlaces = async () => {
+    if (!auth || !postPlaceQuery.trim()) {
+      setMessage({tone: 'error', text: '장소 검색어를 입력해 주세요.'});
+      return;
+    }
+
+    setLoading(true);
+    setMessage({tone: 'info', text: '후기를 남길 장소를 검색하는 중입니다.'});
+
+    try {
+      const data = await request<Restaurant[]>(
+        `/restaurants/search?query=${encodeURIComponent(postPlaceQuery.trim())}`,
+        {auth},
+      );
+      setPostPlaceResults(data);
+      setMessage({
+        tone: 'success',
+        text:
+          data.length > 0
+            ? `${data.length}개의 장소를 찾았습니다.`
+            : '장소 검색 결과가 없습니다.',
+      });
+    } catch (error) {
+      setMessage({
+        tone: 'error',
+        text: getErrorMessage(error, '장소 검색에 실패했습니다.'),
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const selectCommunityPostPlace = (restaurant: Restaurant) => {
+    setPostDraftRestaurant(restaurant);
+    setPostPlaceResults([]);
+    setPostPlaceQuery(restaurant.name);
+    setMessage({tone: 'success', text: '장소를 선택했습니다.'});
+  };
+
+  const createCommunityPost = async () => {
+    if (!auth || !postDraftRestaurant) {
+      setMessage({tone: 'error', text: '후기를 남길 장소를 선택해 주세요.'});
+      return;
+    }
+
+    if (!postTitle.trim() || !postContent.trim()) {
+      setMessage({tone: 'error', text: '제목과 내용을 입력해 주세요.'});
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const created = await request<CommunityPost>('/community/posts', {
+        method: 'POST',
+        auth,
+        body: {
+          title: postTitle.trim(),
+          content: postContent.trim(),
+          restaurant: toSaveRestaurantBody(postDraftRestaurant),
+        },
+      });
+      setCommunityPosts(current => [
+        created,
+        ...current.filter(post => post.id !== created.id),
+      ]);
+      setSelectedCommunityPost(created);
+      setPostWriting(false);
+      setPostDraftRestaurant(null);
+      setPostPlaceQuery('');
+      setPostPlaceResults([]);
+      setPostTitle('');
+      setPostContent('');
+      setSelectedRestaurant(null);
+      setMessage({tone: 'success', text: '커뮤니티 게시글을 작성했습니다.'});
+    } catch (error) {
+      setMessage({
+        tone: 'error',
+        text: getErrorMessage(error, '게시글 작성에 실패했습니다.'),
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveCommunityRestaurant = async (post: CommunityPost) => {
+    if (!auth) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const saved = await request<Restaurant>(
+        `/community/posts/${post.id}/save`,
+        {
+          method: 'POST',
+          auth,
+        },
+      );
+      setSavedRestaurants(current => [
+        saved,
+        ...current.filter(item => getRestaurantKey(item) !== getRestaurantKey(saved)),
+      ]);
+      setRestaurants(current =>
+        current.map(item =>
+          getRestaurantKey(item) === getRestaurantKey(saved)
+            ? {...item, id: saved.id, saved: true}
+            : item,
+        ),
+      );
+      setCommunityPosts(current =>
+        current.map(item =>
+          item.id === post.id
+            ? {...item, restaurant: {...item.restaurant, id: saved.id, saved: true}}
+            : item,
+        ),
+      );
+      setSelectedCommunityPost(current =>
+        current?.id === post.id
+          ? {...current, restaurant: {...current.restaurant, id: saved.id, saved: true}}
+          : current,
+      );
+      setMessage({tone: 'success', text: '게시글의 맛집을 저장했습니다.'});
+    } catch (error) {
+      setMessage({
+        tone: 'error',
+        text: getErrorMessage(error, '게시글 맛집 저장에 실패했습니다.'),
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <View style={styles.safeArea}>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
@@ -347,21 +567,59 @@ function App() {
           restaurants={visibleRestaurants}
           savedRestaurants={savedRestaurants}
           selectedRestaurant={selectedRestaurant}
+          communityPosts={communityPosts}
+          selectedCommunityPost={selectedCommunityPost}
+          postDraftRestaurant={postDraftRestaurant}
+          postWriting={postWriting}
+          postPlaceQuery={postPlaceQuery}
+          postPlaceResults={postPlaceResults}
+          postTitle={postTitle}
+          postContent={postContent}
           savedIdSet={savedIdSet}
-          accountOpen={accountOpen}
+          activePanel={activePanel}
           userId={auth.userId}
           currentPassword={currentPassword}
           newPassword={newPassword}
           onChangeQuery={setQuery}
           onSearch={searchRestaurants}
-          onSelectRestaurant={setSelectedRestaurant}
-          onToggleSaved={toggleSaved}
-          onCloseDetail={() => setSelectedRestaurant(null)}
-          onOpenAccount={() => {
-            setSelectedRestaurant(null);
-            setAccountOpen(true);
+          onSelectRestaurant={restaurant => {
+            setActivePanel('map');
+            setSelectedRestaurant(restaurant);
           }}
-          onCloseAccount={() => setAccountOpen(false)}
+          onToggleSaved={toggleSaved}
+          onOpenMap={() => {
+            setSelectedCommunityPost(null);
+            setPostWriting(false);
+            setPostDraftRestaurant(null);
+            setPostPlaceQuery('');
+            setPostPlaceResults([]);
+            setActivePanel('map');
+          }}
+          onOpenCommunity={openCommunity}
+          onSelectCommunityPost={post => {
+            setSelectedCommunityPost(post);
+            setPostWriting(false);
+            setPostDraftRestaurant(null);
+          }}
+          onSaveCommunityRestaurant={saveCommunityRestaurant}
+          onStartCommunityPost={startCommunityPost}
+          onCancelCommunityPost={cancelCommunityPost}
+          onSearchCommunityPostPlaces={searchCommunityPostPlaces}
+          onSelectCommunityPostPlace={selectCommunityPostPlace}
+          onCreateCommunityPost={createCommunityPost}
+          onChangePostPlaceQuery={setPostPlaceQuery}
+          onChangePostTitle={setPostTitle}
+          onChangePostContent={setPostContent}
+          onCloseDetail={() => setSelectedRestaurant(null)}
+          onOpenMyPage={() => {
+            setSelectedRestaurant(null);
+            setSelectedCommunityPost(null);
+            setPostWriting(false);
+            setPostDraftRestaurant(null);
+            setPostPlaceQuery('');
+            setPostPlaceResults([]);
+            setActivePanel('mypage');
+          }}
           onChangeCurrentPassword={setCurrentPassword}
           onChangeNewPassword={setNewPassword}
           onChangePassword={changePassword}
@@ -404,8 +662,16 @@ function MapHome({
   restaurants,
   savedRestaurants,
   selectedRestaurant,
+  communityPosts,
+  selectedCommunityPost,
+  postDraftRestaurant,
+  postWriting,
+  postPlaceQuery,
+  postPlaceResults,
+  postTitle,
+  postContent,
   savedIdSet,
-  accountOpen,
+  activePanel,
   userId,
   currentPassword,
   newPassword,
@@ -413,9 +679,20 @@ function MapHome({
   onSearch,
   onSelectRestaurant,
   onToggleSaved,
+  onOpenMap,
+  onOpenCommunity,
+  onSelectCommunityPost,
+  onSaveCommunityRestaurant,
+  onStartCommunityPost,
+  onCancelCommunityPost,
+  onSearchCommunityPostPlaces,
+  onSelectCommunityPostPlace,
+  onCreateCommunityPost,
+  onChangePostPlaceQuery,
+  onChangePostTitle,
+  onChangePostContent,
   onCloseDetail,
-  onOpenAccount,
-  onCloseAccount,
+  onOpenMyPage,
   onChangeCurrentPassword,
   onChangeNewPassword,
   onChangePassword,
@@ -428,8 +705,16 @@ function MapHome({
   restaurants: Restaurant[];
   savedRestaurants: Restaurant[];
   selectedRestaurant: Restaurant | null;
+  communityPosts: CommunityPost[];
+  selectedCommunityPost: CommunityPost | null;
+  postDraftRestaurant: Restaurant | null;
+  postWriting: boolean;
+  postPlaceQuery: string;
+  postPlaceResults: Restaurant[];
+  postTitle: string;
+  postContent: string;
   savedIdSet: Set<number>;
-  accountOpen: boolean;
+  activePanel: ActivePanel;
   userId: number;
   currentPassword: string;
   newPassword: string;
@@ -437,9 +722,20 @@ function MapHome({
   onSearch: () => void;
   onSelectRestaurant: (restaurant: Restaurant) => void;
   onToggleSaved: (restaurant: Restaurant) => void;
+  onOpenMap: () => void;
+  onOpenCommunity: () => void;
+  onSelectCommunityPost: (post: CommunityPost | null) => void;
+  onSaveCommunityRestaurant: (post: CommunityPost) => void;
+  onStartCommunityPost: () => void;
+  onCancelCommunityPost: () => void;
+  onSearchCommunityPostPlaces: () => void;
+  onSelectCommunityPostPlace: (restaurant: Restaurant) => void;
+  onCreateCommunityPost: () => void;
+  onChangePostPlaceQuery: (value: string) => void;
+  onChangePostTitle: (value: string) => void;
+  onChangePostContent: (value: string) => void;
   onCloseDetail: () => void;
-  onOpenAccount: () => void;
-  onCloseAccount: () => void;
+  onOpenMyPage: () => void;
   onChangeCurrentPassword: (value: string) => void;
   onChangeNewPassword: (value: string) => void;
   onChangePassword: () => void;
@@ -457,78 +753,131 @@ function MapHome({
 
   return (
     <View style={styles.mapHome}>
-      <MapPreview
-        restaurants={mapRestaurants}
-        selectedRestaurant={selectedRestaurant}
-        onSelectRestaurant={onSelectRestaurant}
-      />
-
-      <View style={styles.mapTopPanel}>
-        <View style={styles.mapBrandRow}>
-          <View>
-            <Text style={styles.mapEyebrow}>Natural Taste</Text>
-            <Text style={styles.mapTitle}>내 주변 맛집 지도</Text>
-          </View>
-          <View style={styles.mapHeaderActions}>
-            <Pressable
-              style={({pressed}) => [
-                styles.logoutButton,
-                pressed ? styles.pressed : null,
-                loading ? styles.disabled : null,
-              ]}
-              onPress={onOpenAccount}
-              disabled={loading}>
-              <Text style={styles.logoutButtonText}>계정</Text>
-            </Pressable>
-            <Pressable
-              style={({pressed}) => [
-                styles.logoutButton,
-                pressed ? styles.pressed : null,
-                loading ? styles.disabled : null,
-              ]}
-              onPress={onLogout}
-              disabled={loading}>
-              <Text style={styles.logoutButtonText}>로그아웃</Text>
-            </Pressable>
-          </View>
-        </View>
-
-        <View style={styles.mapSearchBar}>
-          <TextInput
-            style={styles.mapSearchInput}
-            placeholder="지역, 음식, 가게 검색"
-            value={query}
-            onChangeText={onChangeQuery}
-            returnKeyType="search"
-            onSubmitEditing={onSearch}
+      {activePanel === 'map' ? (
+        <>
+          <MapPreview
+            restaurants={mapRestaurants}
+            selectedRestaurant={selectedRestaurant}
+            onSelectRestaurant={onSelectRestaurant}
           />
-          <Pressable
-            style={({pressed}) => [
-              styles.mapSearchButton,
-              pressed ? styles.pressed : null,
-              loading ? styles.disabled : null,
-            ]}
-            onPress={onSearch}
-            disabled={loading}>
-            <Text style={styles.mapSearchButtonText}>검색</Text>
-          </Pressable>
-        </View>
 
-        <View
-          style={[
-            styles.mapStatus,
-            message.tone === 'error' ? styles.messageError : null,
-            message.tone === 'success' ? styles.messageSuccess : null,
-          ]}>
-          {loading ? <ActivityIndicator color="#49624A" /> : null}
-          <Text style={styles.mapStatusText} numberOfLines={2}>
-            {message.text}
-          </Text>
-        </View>
-      </View>
+          <View style={styles.mapTopPanel}>
+            <View style={styles.mapBrandRow}>
+              <View>
+                <Text style={styles.mapEyebrow}>Natural Taste</Text>
+                <Text style={styles.mapTitle}>내 주변 맛집 지도</Text>
+              </View>
+            </View>
 
-      <View style={[styles.bottomSheet, {maxHeight: Math.max(230, height * 0.42)}]}>
-        {accountOpen ? (
+            <View style={styles.mapSearchBar}>
+              <TextInput
+                style={styles.mapSearchInput}
+                placeholder="지역, 음식, 가게 검색"
+                value={query}
+                onChangeText={onChangeQuery}
+                returnKeyType="search"
+                onSubmitEditing={onSearch}
+              />
+              <Pressable
+                style={({pressed}) => [
+                  styles.mapSearchButton,
+                  pressed ? styles.pressed : null,
+                  loading ? styles.disabled : null,
+                ]}
+                onPress={onSearch}
+                disabled={loading}>
+                <Text style={styles.mapSearchButtonText}>검색</Text>
+              </Pressable>
+            </View>
+
+            <View
+              style={[
+                styles.mapStatus,
+                message.tone === 'error' ? styles.messageError : null,
+                message.tone === 'success' ? styles.messageSuccess : null,
+              ]}>
+              {loading ? <ActivityIndicator color="#49624A" /> : null}
+              <Text style={styles.mapStatusText} numberOfLines={2}>
+                {message.text}
+              </Text>
+            </View>
+          </View>
+
+          <View
+            style={[
+              styles.bottomSheet,
+              styles.bottomSheetAboveTabs,
+              {maxHeight: Math.max(230, height * 0.42)},
+            ]}>
+            {selectedRestaurant ? (
+              <MapRestaurantDetail
+                restaurant={selectedRestaurant}
+                saved={Boolean(
+                  selectedRestaurant.saved ||
+                    findSavedRestaurant(selectedRestaurant, savedRestaurants),
+                )}
+                loading={loading}
+                onToggleSaved={onToggleSaved}
+                onClose={onCloseDetail}
+              />
+            ) : (
+              <MapRestaurantSheet
+                title={hasSearchResults ? '검색 결과' : '저장한 맛집'}
+                emptyText={
+                  hasSearchResults
+                    ? '검색 결과가 없습니다.'
+                    : '저장한 맛집이 지도에 표시됩니다.'
+                }
+                restaurants={sheetRestaurants}
+                savedIdSet={savedIdSet}
+                loading={loading}
+                onSelectRestaurant={onSelectRestaurant}
+                onToggleSaved={onToggleSaved}
+              />
+            )}
+          </View>
+        </>
+      ) : activePanel === 'community' ? (
+        <View style={styles.tabScreen}>
+          <TabScreenHeader
+            eyebrow="Community"
+            title="커뮤니티"
+            message={message}
+            loading={loading}
+          />
+          <CommunitySheet
+            posts={communityPosts}
+            selectedPost={selectedCommunityPost}
+            draftRestaurant={postDraftRestaurant}
+            writing={postWriting}
+            placeQuery={postPlaceQuery}
+            placeResults={postPlaceResults}
+            title={postTitle}
+            content={postContent}
+            savedRestaurants={savedRestaurants}
+            loading={loading}
+            onSelectPost={onSelectCommunityPost}
+            onSaveRestaurant={onSaveCommunityRestaurant}
+            onStartPost={onStartCommunityPost}
+            onCancelPost={onCancelCommunityPost}
+            onSearchPlaces={onSearchCommunityPostPlaces}
+            onSelectPlace={onSelectCommunityPostPlace}
+            onCreatePost={onCreateCommunityPost}
+            onChangePlaceQuery={onChangePostPlaceQuery}
+            onChangeTitle={onChangePostTitle}
+            onChangeContent={onChangePostContent}
+            onClose={() => onSelectCommunityPost(null)}
+            showHandle={false}
+          />
+        </View>
+      ) : (
+        <View style={styles.tabScreen}>
+          <TabScreenHeader
+            eyebrow="My Page"
+            title="마이페이지"
+            message={message}
+            loading={loading}
+          />
           <MapAccountSheet
             userId={userId}
             currentPassword={currentPassword}
@@ -539,35 +888,18 @@ function MapHome({
             onChangePassword={onChangePassword}
             onLogout={onLogout}
             onDeleteUser={onDeleteUser}
-            onClose={onCloseAccount}
+            showHandle={false}
           />
-        ) : selectedRestaurant ? (
-          <MapRestaurantDetail
-            restaurant={selectedRestaurant}
-            saved={Boolean(
-              selectedRestaurant.saved ||
-                findSavedRestaurant(selectedRestaurant, savedRestaurants),
-            )}
-            loading={loading}
-            onToggleSaved={onToggleSaved}
-            onClose={onCloseDetail}
-          />
-        ) : (
-          <MapRestaurantSheet
-            title={hasSearchResults ? '검색 결과' : '저장한 맛집'}
-            emptyText={
-              hasSearchResults
-                ? '검색 결과가 없습니다.'
-                : '저장한 맛집이 지도에 표시됩니다.'
-            }
-            restaurants={sheetRestaurants}
-            savedIdSet={savedIdSet}
-            loading={loading}
-            onSelectRestaurant={onSelectRestaurant}
-            onToggleSaved={onToggleSaved}
-          />
-        )}
-      </View>
+        </View>
+      )}
+
+      <BottomTabBar
+        activePanel={activePanel}
+        loading={loading}
+        onOpenMap={onOpenMap}
+        onOpenCommunity={onOpenCommunity}
+        onOpenMyPage={onOpenMyPage}
+      />
     </View>
   );
 }
@@ -651,6 +983,392 @@ function MapRestaurantSheet({
   );
 }
 
+function TabScreenHeader({
+  eyebrow,
+  title,
+  message,
+  loading,
+}: {
+  eyebrow: string;
+  title: string;
+  message: Message;
+  loading: boolean;
+}) {
+  return (
+    <View style={styles.tabScreenHeader}>
+      <Text style={styles.mapEyebrow}>{eyebrow}</Text>
+      <Text style={styles.tabScreenTitle}>{title}</Text>
+      <View
+        style={[
+          styles.mapStatus,
+          message.tone === 'error' ? styles.messageError : null,
+          message.tone === 'success' ? styles.messageSuccess : null,
+        ]}>
+        {loading ? <ActivityIndicator color="#49624A" /> : null}
+        <Text style={styles.mapStatusText} numberOfLines={2}>
+          {message.text}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function BottomTabBar({
+  activePanel,
+  loading,
+  onOpenMap,
+  onOpenCommunity,
+  onOpenMyPage,
+}: {
+  activePanel: ActivePanel;
+  loading: boolean;
+  onOpenMap: () => void;
+  onOpenCommunity: () => void;
+  onOpenMyPage: () => void;
+}) {
+  return (
+    <View style={styles.bottomTabBar}>
+      <BottomTabButton
+        label="지도"
+        active={activePanel === 'map'}
+        disabled={loading}
+        onPress={onOpenMap}
+      />
+      <BottomTabButton
+        label="커뮤니티"
+        active={activePanel === 'community'}
+        disabled={loading}
+        onPress={onOpenCommunity}
+      />
+      <BottomTabButton
+        label="마이페이지"
+        active={activePanel === 'mypage'}
+        disabled={loading}
+        onPress={onOpenMyPage}
+      />
+    </View>
+  );
+}
+
+function BottomTabButton({
+  label,
+  active,
+  disabled,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  disabled: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      style={({pressed}) => [
+        styles.bottomTabButton,
+        active ? styles.bottomTabButtonActive : null,
+        pressed ? styles.pressed : null,
+        disabled ? styles.disabled : null,
+      ]}
+      onPress={onPress}
+      disabled={disabled}>
+      <View
+        style={[
+          styles.bottomTabIndicator,
+          active ? styles.bottomTabIndicatorActive : null,
+        ]}
+      />
+      <Text
+        style={[
+          styles.bottomTabButtonText,
+          active ? styles.bottomTabButtonTextActive : null,
+        ]}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function CommunitySheet({
+  posts,
+  selectedPost,
+  draftRestaurant,
+  writing,
+  placeQuery,
+  placeResults,
+  title,
+  content,
+  savedRestaurants,
+  loading,
+  onSelectPost,
+  onSaveRestaurant,
+  onStartPost,
+  onCancelPost,
+  onSearchPlaces,
+  onSelectPlace,
+  onCreatePost,
+  onChangePlaceQuery,
+  onChangeTitle,
+  onChangeContent,
+  onClose,
+  showHandle = true,
+}: {
+  posts: CommunityPost[];
+  selectedPost: CommunityPost | null;
+  draftRestaurant: Restaurant | null;
+  writing: boolean;
+  placeQuery: string;
+  placeResults: Restaurant[];
+  title: string;
+  content: string;
+  savedRestaurants: Restaurant[];
+  loading: boolean;
+  onSelectPost: (post: CommunityPost) => void;
+  onSaveRestaurant: (post: CommunityPost) => void;
+  onStartPost: () => void;
+  onCancelPost: () => void;
+  onSearchPlaces: () => void;
+  onSelectPlace: (restaurant: Restaurant) => void;
+  onCreatePost: () => void;
+  onChangePlaceQuery: (value: string) => void;
+  onChangeTitle: (value: string) => void;
+  onChangeContent: (value: string) => void;
+  onClose: () => void;
+  showHandle?: boolean;
+}) {
+  if (writing) {
+    return (
+      <ScrollView
+        style={styles.communityWriteScroll}
+        contentContainerStyle={styles.communityWriteContent}
+        showsVerticalScrollIndicator>
+        <View>
+          {showHandle ? <View style={styles.sheetHandle} /> : null}
+          <View style={styles.detailTopRow}>
+            <View style={styles.restaurantTextGroup}>
+              <Text style={styles.sheetTitle}>게시글 작성</Text>
+              <Text style={styles.restaurantMeta}>
+                장소를 선택하고 후기를 남겨주세요.
+              </Text>
+            </View>
+            <Pressable
+              style={({pressed}) => [
+                styles.closeButton,
+                pressed ? styles.pressed : null,
+              ]}
+              onPress={onCancelPost}>
+              <Text style={styles.closeButtonText}>닫기</Text>
+            </Pressable>
+          </View>
+          <Field label="장소">
+            <View style={styles.inlineSearchRow}>
+              <TextInput
+                style={[styles.input, styles.inlineSearchInput]}
+                placeholder="장소명, 지역, 음식 검색"
+                value={placeQuery}
+                onChangeText={onChangePlaceQuery}
+                returnKeyType="search"
+                onSubmitEditing={onSearchPlaces}
+              />
+              <Pressable
+                style={({pressed}) => [
+                  styles.inlineSearchButton,
+                  pressed ? styles.pressed : null,
+                  loading ? styles.disabled : null,
+                ]}
+                onPress={onSearchPlaces}
+                disabled={loading}>
+                <Text style={styles.inlineSearchButtonText}>검색</Text>
+              </Pressable>
+            </View>
+          </Field>
+          {draftRestaurant ? (
+            <View style={styles.selectedPlaceBox}>
+              <Text style={styles.restaurantName}>{draftRestaurant.name}</Text>
+              <Text style={styles.restaurantMeta} numberOfLines={1}>
+                {draftRestaurant.category || '카테고리 미정'}
+              </Text>
+              <Text style={styles.restaurantAddress} numberOfLines={1}>
+                {draftRestaurant.address}
+              </Text>
+            </View>
+          ) : null}
+          {placeResults.length > 0 ? (
+            <View style={styles.placeResultList}>
+              {placeResults.map(restaurant => {
+                const selected =
+                  draftRestaurant &&
+                  getRestaurantKey(draftRestaurant) === getRestaurantKey(restaurant);
+
+                return (
+                  <Pressable
+                    key={getRestaurantKey(restaurant)}
+                    style={({pressed}) => [
+                      styles.placeResultItem,
+                      selected ? styles.placeResultItemActive : null,
+                      pressed ? styles.pressed : null,
+                    ]}
+                    onPress={() => onSelectPlace(restaurant)}>
+                    <View style={styles.restaurantTextGroup}>
+                      <Text style={styles.restaurantName} numberOfLines={1}>
+                        {restaurant.name}
+                      </Text>
+                      <Text style={styles.restaurantAddress} numberOfLines={1}>
+                        {restaurant.address}
+                      </Text>
+                    </View>
+                    <Text style={styles.placeSelectText}>
+                      {selected ? '선택됨' : '선택'}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : null}
+          <Field label="제목">
+            <TextInput
+              style={styles.input}
+              placeholder="게시글 제목"
+              value={title}
+              onChangeText={onChangeTitle}
+            />
+          </Field>
+          <Field label="내용">
+            <TextInput
+              style={[styles.input, styles.contentInput]}
+              placeholder="맛집을 추천하는 이유"
+              value={content}
+              onChangeText={onChangeContent}
+              multiline
+            />
+          </Field>
+          <PrimaryButton
+            label="게시글 작성"
+            onPress={onCreatePost}
+            disabled={loading}
+          />
+        </View>
+      </ScrollView>
+    );
+  }
+
+  if (selectedPost) {
+    const saved = Boolean(findSavedRestaurant(selectedPost.restaurant, savedRestaurants));
+
+    return (
+      <View>
+        {showHandle ? <View style={styles.sheetHandle} /> : null}
+        <View style={styles.detailTopRow}>
+          <View style={styles.restaurantTextGroup}>
+            <Text style={styles.detailName}>{selectedPost.title}</Text>
+            <Text style={styles.restaurantMeta}>
+              작성자 {selectedPost.authorId} · {formatDate(selectedPost.createdAt)}
+            </Text>
+          </View>
+          <Pressable
+            style={({pressed}) => [
+              styles.closeButton,
+              pressed ? styles.pressed : null,
+            ]}
+            onPress={onClose}>
+            <Text style={styles.closeButtonText}>목록</Text>
+          </Pressable>
+        </View>
+        <Text style={styles.postContent}>{selectedPost.content}</Text>
+        <View style={styles.postRestaurantBox}>
+          <Text style={styles.restaurantName}>{selectedPost.restaurant.name}</Text>
+          <Text style={styles.restaurantMeta}>
+            {selectedPost.restaurant.category || '카테고리 미정'}
+          </Text>
+          <Text style={styles.restaurantAddress}>
+            {selectedPost.restaurant.address}
+          </Text>
+        </View>
+        <PrimaryButton
+          label={saved ? '저장됨' : '내 맛집에 저장'}
+          onPress={() => onSaveRestaurant(selectedPost)}
+          disabled={loading || saved}
+        />
+      </View>
+    );
+  }
+
+  return (
+    <View>
+      {showHandle ? <View style={styles.sheetHandle} /> : null}
+      <View style={styles.sheetHeader}>
+        <View>
+          <Text style={styles.sheetTitle}>커뮤니티</Text>
+          <Text style={styles.sheetCount}>{posts.length}개</Text>
+        </View>
+        <Pressable
+          style={({pressed}) => [
+            styles.writeButton,
+            pressed ? styles.pressed : null,
+            loading ? styles.disabled : null,
+          ]}
+          onPress={onStartPost}
+          disabled={loading}>
+          <Text style={styles.writeButtonText}>글쓰기</Text>
+        </Pressable>
+      </View>
+      {posts.length === 0 ? (
+        <Text style={styles.sheetEmptyText}>
+          글쓰기를 눌러 장소에 대한 후기를 남겨보세요.
+        </Text>
+      ) : (
+        <ScrollView
+          style={styles.sheetScroll}
+          contentContainerStyle={styles.sheetList}
+          showsVerticalScrollIndicator={false}>
+          {posts.map(post => {
+            const saved = Boolean(findSavedRestaurant(post.restaurant, savedRestaurants));
+
+            return (
+              <Pressable
+                key={post.id}
+                style={({pressed}) => [
+                  styles.communityPost,
+                  pressed ? styles.pressed : null,
+                ]}
+                onPress={() => onSelectPost(post)}>
+                <View style={styles.restaurantTextGroup}>
+                  <Text style={styles.restaurantName} numberOfLines={1}>
+                    {post.title}
+                  </Text>
+                  <Text style={styles.restaurantMeta} numberOfLines={1}>
+                    {post.restaurant.name}
+                  </Text>
+                  <Text style={styles.restaurantAddress} numberOfLines={1}>
+                    {post.restaurant.address}
+                  </Text>
+                  <Text style={styles.postDate}>{formatDate(post.createdAt)}</Text>
+                </View>
+                <Pressable
+                  style={({pressed}) => [
+                    styles.sheetSaveButton,
+                    saved ? styles.sheetSaveButtonActive : null,
+                    pressed ? styles.pressed : null,
+                    loading || saved ? styles.disabled : null,
+                  ]}
+                  onPress={() => onSaveRestaurant(post)}
+                  disabled={loading || saved}>
+                  <Text
+                    style={[
+                      styles.sheetSaveButtonText,
+                      saved ? styles.sheetSaveButtonActiveText : null,
+                    ]}>
+                    {saved ? '저장됨' : '저장'}
+                  </Text>
+                </Pressable>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      )}
+    </View>
+  );
+}
+
 function MapRestaurantDetail({
   restaurant,
   saved,
@@ -710,6 +1428,7 @@ function MapAccountSheet({
   onLogout,
   onDeleteUser,
   onClose,
+  showHandle = true,
 }: {
   userId: number;
   currentPassword: string;
@@ -720,24 +1439,27 @@ function MapAccountSheet({
   onChangePassword: () => void;
   onLogout: () => void;
   onDeleteUser: () => void;
-  onClose: () => void;
+  onClose?: () => void;
+  showHandle?: boolean;
 }) {
   return (
     <View>
-      <View style={styles.sheetHandle} />
+      {showHandle ? <View style={styles.sheetHandle} /> : null}
       <View style={styles.detailTopRow}>
         <View style={styles.restaurantTextGroup}>
           <Text style={styles.sheetTitle}>회원 정보</Text>
           <Text style={styles.restaurantMeta}>회원 번호 {userId}</Text>
         </View>
-        <Pressable
-          style={({pressed}) => [
-            styles.closeButton,
-            pressed ? styles.pressed : null,
-          ]}
-          onPress={onClose}>
-          <Text style={styles.closeButtonText}>닫기</Text>
-        </Pressable>
+        {onClose ? (
+          <Pressable
+            style={({pressed}) => [
+              styles.closeButton,
+              pressed ? styles.pressed : null,
+            ]}
+            onPress={onClose}>
+            <Text style={styles.closeButtonText}>닫기</Text>
+          </Pressable>
+        ) : null}
       </View>
       <Field label="현재 비밀번호">
         <TextInput
@@ -1068,6 +1790,19 @@ function findSavedRestaurant(
   });
 }
 
+function formatDate(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleDateString('ko-KR', {
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
 function toSaveRestaurantBody(restaurant: Restaurant) {
   return {
     provider: restaurant.provider ?? 'KAKAO',
@@ -1261,6 +1996,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F3EA',
     flex: 1,
   },
+  tabScreen: {
+    backgroundColor: '#F5F3EA',
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'ios' ? 58 : 28,
+    paddingBottom: Platform.OS === 'ios' ? 104 : 92,
+  },
+  tabScreenHeader: {
+    marginBottom: 14,
+  },
+  tabScreenTitle: {
+    color: '#23251F',
+    fontSize: 28,
+    fontWeight: '900',
+    letterSpacing: 0,
+    marginBottom: 12,
+  },
   mapTopPanel: {
     left: 16,
     position: 'absolute',
@@ -1273,10 +2025,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 12,
   },
-  mapHeaderActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
   mapEyebrow: {
     color: '#49624A',
     fontSize: 12,
@@ -1288,19 +2036,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '900',
     letterSpacing: 0,
-  },
-  logoutButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
-    borderColor: '#E4E0D5',
-    borderRadius: 8,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-  },
-  logoutButtonText: {
-    color: '#505449',
-    fontSize: 12,
-    fontWeight: '800',
   },
   mapSearchBar: {
     alignItems: 'center',
@@ -1371,6 +2106,57 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 26,
   },
+  bottomSheetAboveTabs: {
+    bottom: Platform.OS === 'ios' ? 88 : 76,
+  },
+  bottomTabBar: {
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E4E0D5',
+    borderTopWidth: 1,
+    bottom: 0,
+    flexDirection: 'row',
+    gap: 8,
+    left: 0,
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: Platform.OS === 'ios' ? 28 : 14,
+    position: 'absolute',
+    right: 0,
+    shadowColor: '#3B3528',
+    shadowOffset: {width: 0, height: -8},
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+  },
+  bottomTabButton: {
+    alignItems: 'center',
+    borderRadius: 8,
+    flex: 1,
+    gap: 6,
+    justifyContent: 'center',
+    minHeight: 48,
+    paddingVertical: 8,
+  },
+  bottomTabButtonActive: {
+    backgroundColor: '#EEF4EC',
+  },
+  bottomTabIndicator: {
+    backgroundColor: 'transparent',
+    borderRadius: 2,
+    height: 3,
+    width: 24,
+  },
+  bottomTabIndicatorActive: {
+    backgroundColor: '#49624A',
+  },
+  bottomTabButtonText: {
+    color: '#676B5E',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  bottomTabButtonTextActive: {
+    color: '#23251F',
+  },
   sheetHandle: {
     alignSelf: 'center',
     backgroundColor: '#D8D2C2',
@@ -1411,6 +2197,87 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     padding: 12,
+  },
+  communityPost: {
+    alignItems: 'center',
+    backgroundColor: '#FCFBF7',
+    borderColor: '#E4E0D5',
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    padding: 12,
+  },
+  communityWriteScroll: {
+    maxHeight: '100%',
+  },
+  communityWriteContent: {
+    paddingBottom: 36,
+  },
+  inlineSearchRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  inlineSearchInput: {
+    flex: 1,
+  },
+  inlineSearchButton: {
+    alignItems: 'center',
+    backgroundColor: '#23251F',
+    borderRadius: 8,
+    justifyContent: 'center',
+    minHeight: 48,
+    paddingHorizontal: 14,
+  },
+  inlineSearchButtonText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  selectedPlaceBox: {
+    backgroundColor: '#EEF4EC',
+    borderColor: '#C8D7C3',
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 4,
+    marginBottom: 14,
+    padding: 12,
+  },
+  placeResultList: {
+    gap: 10,
+    marginBottom: 14,
+  },
+  placeResultItem: {
+    alignItems: 'center',
+    backgroundColor: '#FCFBF7',
+    borderColor: '#E4E0D5',
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    padding: 10,
+  },
+  placeResultItemActive: {
+    borderColor: '#49624A',
+  },
+  placeSelectText: {
+    color: '#49624A',
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  writeButton: {
+    alignItems: 'center',
+    backgroundColor: '#49624A',
+    borderRadius: 8,
+    justifyContent: 'center',
+    minHeight: 40,
+    paddingHorizontal: 14,
+  },
+  writeButtonText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '900',
   },
   sheetSaveButton: {
     alignItems: 'center',
@@ -1535,6 +2402,10 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingHorizontal: 14,
     paddingVertical: 12,
+  },
+  contentInput: {
+    minHeight: 96,
+    textAlignVertical: 'top',
   },
   segmentedControl: {
     backgroundColor: '#F1EDE2',
@@ -1735,6 +2606,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
   },
+  postDate: {
+    color: '#8A877C',
+    fontSize: 12,
+    fontWeight: '700',
+  },
   detailName: {
     color: '#23251F',
     fontSize: 22,
@@ -1746,6 +2622,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 21,
     marginBottom: 6,
+  },
+  postContent: {
+    color: '#3F4438',
+    fontSize: 15,
+    lineHeight: 22,
+    marginBottom: 14,
+  },
+  postRestaurantBox: {
+    backgroundColor: '#FCFBF7',
+    borderColor: '#E4E0D5',
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 5,
+    marginBottom: 12,
+    padding: 12,
   },
   accountText: {
     color: '#505449',
