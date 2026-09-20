@@ -1,6 +1,7 @@
 import React, {useMemo, useState} from 'react';
 import {
   ActivityIndicator,
+  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -43,9 +44,21 @@ type CommunityPost = {
   authorId: number;
   title: string;
   content: string;
+  imageUrl?: string | null;
   restaurant: Restaurant;
+  commentCount: number;
+  recommendationCount: number;
+  recommended: boolean;
   createdAt: string;
   updatedAt: string;
+};
+
+type CommunityComment = {
+  id: number;
+  postId: number;
+  authorId: number;
+  content: string;
+  createdAt: string;
 };
 
 type Message = {
@@ -89,6 +102,9 @@ function App() {
   const [postPlaceResults, setPostPlaceResults] = useState<Restaurant[]>([]);
   const [postTitle, setPostTitle] = useState('');
   const [postContent, setPostContent] = useState('');
+  const [postImageUrl, setPostImageUrl] = useState('');
+  const [communityComments, setCommunityComments] = useState<CommunityComment[]>([]);
+  const [commentContent, setCommentContent] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<Message>(emptyMessage);
 
@@ -177,6 +193,9 @@ function App() {
       setPostDraftRestaurant(null);
       setPostPlaceQuery('');
       setPostPlaceResults([]);
+      setPostImageUrl('');
+      setCommunityComments([]);
+      setCommentContent('');
       setMessage({tone: 'success', text: '로그아웃되었습니다.'});
       setLoading(false);
     }
@@ -230,6 +249,9 @@ function App() {
       setPostDraftRestaurant(null);
       setPostPlaceQuery('');
       setPostPlaceResults([]);
+      setPostImageUrl('');
+      setCommunityComments([]);
+      setCommentContent('');
       setMessage({tone: 'success', text: '회원탈퇴가 완료되었습니다.'});
     } catch (error) {
       setMessage({
@@ -394,6 +416,39 @@ function App() {
     }
   };
 
+  const loadCommunityComments = async (postId: number) => {
+    if (!auth) {
+      return;
+    }
+
+    try {
+      const data = await request<CommunityComment[]>(
+        `/community/posts/${postId}/comments`,
+        {auth},
+      );
+      setCommunityComments(data);
+    } catch (error) {
+      setMessage({
+        tone: 'error',
+        text: getErrorMessage(error, '댓글 조회에 실패했습니다.'),
+      });
+    }
+  };
+
+  const selectCommunityPost = async (post: CommunityPost | null) => {
+    setSelectedCommunityPost(post);
+    setPostWriting(false);
+    setPostDraftRestaurant(null);
+    setCommentContent('');
+
+    if (post) {
+      await loadCommunityComments(post.id);
+      return;
+    }
+
+    setCommunityComments([]);
+  };
+
   const startCommunityPost = () => {
     setSelectedCommunityPost(null);
     setPostWriting(true);
@@ -402,6 +457,9 @@ function App() {
     setPostPlaceResults([]);
     setPostTitle('');
     setPostContent('');
+    setPostImageUrl('');
+    setCommunityComments([]);
+    setCommentContent('');
     setActivePanel('community');
   };
 
@@ -412,6 +470,7 @@ function App() {
     setPostPlaceResults([]);
     setPostTitle('');
     setPostContent('');
+    setPostImageUrl('');
   };
 
   const searchCommunityPostPlaces = async () => {
@@ -472,6 +531,7 @@ function App() {
         body: {
           title: postTitle.trim(),
           content: postContent.trim(),
+          imageUrl: postImageUrl.trim() || undefined,
           restaurant: toSaveRestaurantBody(postDraftRestaurant),
         },
       });
@@ -486,6 +546,9 @@ function App() {
       setPostPlaceResults([]);
       setPostTitle('');
       setPostContent('');
+      setPostImageUrl('');
+      setCommunityComments([]);
+      setCommentContent('');
       setSelectedRestaurant(null);
       setMessage({tone: 'success', text: '커뮤니티 게시글을 작성했습니다.'});
     } catch (error) {
@@ -546,6 +609,83 @@ function App() {
     }
   };
 
+  const toggleCommunityRecommendation = async (post: CommunityPost) => {
+    if (!auth) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const updated = await request<CommunityPost>(
+        `/community/posts/${post.id}/recommend`,
+        {
+          method: 'POST',
+          auth,
+        },
+      );
+      setCommunityPosts(current =>
+        current.map(item => (item.id === updated.id ? updated : item)),
+      );
+      setSelectedCommunityPost(current =>
+        current?.id === updated.id ? updated : current,
+      );
+      setMessage({
+        tone: 'success',
+        text: updated.recommended ? '게시글을 추천했습니다.' : '추천을 취소했습니다.',
+      });
+    } catch (error) {
+      setMessage({
+        tone: 'error',
+        text: getErrorMessage(error, '추천 상태 변경에 실패했습니다.'),
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createCommunityComment = async () => {
+    if (!auth || !selectedCommunityPost) {
+      return;
+    }
+
+    if (!commentContent.trim()) {
+      setMessage({tone: 'error', text: '댓글 내용을 입력해 주세요.'});
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const created = await request<CommunityComment>(
+        `/community/posts/${selectedCommunityPost.id}/comments`,
+        {
+          method: 'POST',
+          auth,
+          body: {content: commentContent.trim()},
+        },
+      );
+      setCommunityComments(current => [...current, created]);
+      setCommunityPosts(current =>
+        current.map(post =>
+          post.id === selectedCommunityPost.id
+            ? {...post, commentCount: post.commentCount + 1}
+            : post,
+        ),
+      );
+      setSelectedCommunityPost(current =>
+        current ? {...current, commentCount: current.commentCount + 1} : current,
+      );
+      setCommentContent('');
+      setMessage({tone: 'success', text: '댓글을 작성했습니다.'});
+    } catch (error) {
+      setMessage({
+        tone: 'error',
+        text: getErrorMessage(error, '댓글 작성에 실패했습니다.'),
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <View style={styles.safeArea}>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
@@ -565,6 +705,9 @@ function App() {
           postPlaceResults={postPlaceResults}
           postTitle={postTitle}
           postContent={postContent}
+          postImageUrl={postImageUrl}
+          communityComments={communityComments}
+          commentContent={commentContent}
           savedIdSet={savedIdSet}
           activePanel={activePanel}
           userId={auth.userId}
@@ -583,15 +726,14 @@ function App() {
             setPostDraftRestaurant(null);
             setPostPlaceQuery('');
             setPostPlaceResults([]);
+            setCommunityComments([]);
+            setCommentContent('');
             setActivePanel('map');
           }}
           onOpenCommunity={openCommunity}
-          onSelectCommunityPost={post => {
-            setSelectedCommunityPost(post);
-            setPostWriting(false);
-            setPostDraftRestaurant(null);
-          }}
+          onSelectCommunityPost={selectCommunityPost}
           onSaveCommunityRestaurant={saveCommunityRestaurant}
+          onToggleCommunityRecommendation={toggleCommunityRecommendation}
           onStartCommunityPost={startCommunityPost}
           onCancelCommunityPost={cancelCommunityPost}
           onSearchCommunityPostPlaces={searchCommunityPostPlaces}
@@ -600,6 +742,9 @@ function App() {
           onChangePostPlaceQuery={setPostPlaceQuery}
           onChangePostTitle={setPostTitle}
           onChangePostContent={setPostContent}
+          onChangePostImageUrl={setPostImageUrl}
+          onCreateCommunityComment={createCommunityComment}
+          onChangeCommentContent={setCommentContent}
           onCloseDetail={() => setSelectedRestaurant(null)}
           onOpenMyPage={() => {
             setSelectedRestaurant(null);
@@ -608,6 +753,8 @@ function App() {
             setPostDraftRestaurant(null);
             setPostPlaceQuery('');
             setPostPlaceResults([]);
+            setCommunityComments([]);
+            setCommentContent('');
             setActivePanel('mypage');
           }}
           onChangeCurrentPassword={setCurrentPassword}
@@ -660,6 +807,9 @@ function MapHome({
   postPlaceResults,
   postTitle,
   postContent,
+  postImageUrl,
+  communityComments,
+  commentContent,
   savedIdSet,
   activePanel,
   userId,
@@ -673,6 +823,7 @@ function MapHome({
   onOpenCommunity,
   onSelectCommunityPost,
   onSaveCommunityRestaurant,
+  onToggleCommunityRecommendation,
   onStartCommunityPost,
   onCancelCommunityPost,
   onSearchCommunityPostPlaces,
@@ -681,6 +832,9 @@ function MapHome({
   onChangePostPlaceQuery,
   onChangePostTitle,
   onChangePostContent,
+  onChangePostImageUrl,
+  onCreateCommunityComment,
+  onChangeCommentContent,
   onCloseDetail,
   onOpenMyPage,
   onChangeCurrentPassword,
@@ -703,6 +857,9 @@ function MapHome({
   postPlaceResults: Restaurant[];
   postTitle: string;
   postContent: string;
+  postImageUrl: string;
+  communityComments: CommunityComment[];
+  commentContent: string;
   savedIdSet: Set<number>;
   activePanel: ActivePanel;
   userId: number;
@@ -716,6 +873,7 @@ function MapHome({
   onOpenCommunity: () => void;
   onSelectCommunityPost: (post: CommunityPost | null) => void;
   onSaveCommunityRestaurant: (post: CommunityPost) => void;
+  onToggleCommunityRecommendation: (post: CommunityPost) => void;
   onStartCommunityPost: () => void;
   onCancelCommunityPost: () => void;
   onSearchCommunityPostPlaces: () => void;
@@ -724,6 +882,9 @@ function MapHome({
   onChangePostPlaceQuery: (value: string) => void;
   onChangePostTitle: (value: string) => void;
   onChangePostContent: (value: string) => void;
+  onChangePostImageUrl: (value: string) => void;
+  onCreateCommunityComment: () => void;
+  onChangeCommentContent: (value: string) => void;
   onCloseDetail: () => void;
   onOpenMyPage: () => void;
   onChangeCurrentPassword: (value: string) => void;
@@ -844,10 +1005,14 @@ function MapHome({
             placeResults={postPlaceResults}
             title={postTitle}
             content={postContent}
+            imageUrl={postImageUrl}
+            comments={communityComments}
+            commentContent={commentContent}
             savedRestaurants={savedRestaurants}
             loading={loading}
             onSelectPost={onSelectCommunityPost}
             onSaveRestaurant={onSaveCommunityRestaurant}
+            onToggleRecommendation={onToggleCommunityRecommendation}
             onStartPost={onStartCommunityPost}
             onCancelPost={onCancelCommunityPost}
             onSearchPlaces={onSearchCommunityPostPlaces}
@@ -856,6 +1021,9 @@ function MapHome({
             onChangePlaceQuery={onChangePostPlaceQuery}
             onChangeTitle={onChangePostTitle}
             onChangeContent={onChangePostContent}
+            onChangeImageUrl={onChangePostImageUrl}
+            onCreateComment={onCreateCommunityComment}
+            onChangeCommentContent={onChangeCommentContent}
             onClose={() => onSelectCommunityPost(null)}
             showHandle={false}
           />
@@ -1087,10 +1255,14 @@ function CommunitySheet({
   placeResults,
   title,
   content,
+  imageUrl,
+  comments,
+  commentContent,
   savedRestaurants,
   loading,
   onSelectPost,
   onSaveRestaurant,
+  onToggleRecommendation,
   onStartPost,
   onCancelPost,
   onSearchPlaces,
@@ -1099,6 +1271,9 @@ function CommunitySheet({
   onChangePlaceQuery,
   onChangeTitle,
   onChangeContent,
+  onChangeImageUrl,
+  onCreateComment,
+  onChangeCommentContent,
   onClose,
   showHandle = true,
 }: {
@@ -1110,10 +1285,14 @@ function CommunitySheet({
   placeResults: Restaurant[];
   title: string;
   content: string;
+  imageUrl: string;
+  comments: CommunityComment[];
+  commentContent: string;
   savedRestaurants: Restaurant[];
   loading: boolean;
   onSelectPost: (post: CommunityPost) => void;
   onSaveRestaurant: (post: CommunityPost) => void;
+  onToggleRecommendation: (post: CommunityPost) => void;
   onStartPost: () => void;
   onCancelPost: () => void;
   onSearchPlaces: () => void;
@@ -1122,6 +1301,9 @@ function CommunitySheet({
   onChangePlaceQuery: (value: string) => void;
   onChangeTitle: (value: string) => void;
   onChangeContent: (value: string) => void;
+  onChangeImageUrl: (value: string) => void;
+  onCreateComment: () => void;
+  onChangeCommentContent: (value: string) => void;
   onClose: () => void;
   showHandle?: boolean;
 }) {
@@ -1265,6 +1447,15 @@ function CommunitySheet({
               onChangeText={onChangeTitle}
             />
           </Field>
+          <Field label="사진 URL">
+            <TextInput
+              style={styles.input}
+              placeholder="https://example.com/photo.jpg"
+              value={imageUrl}
+              onChangeText={onChangeImageUrl}
+              autoCapitalize="none"
+            />
+          </Field>
           <Field label="내용">
             <TextInput
               style={[styles.input, styles.contentInput]}
@@ -1288,40 +1479,118 @@ function CommunitySheet({
     const saved = Boolean(findSavedRestaurant(selectedPost.restaurant, savedRestaurants));
 
     return (
-      <View>
-        {showHandle ? <View style={styles.sheetHandle} /> : null}
-        <View style={styles.detailTopRow}>
-          <View style={styles.restaurantTextGroup}>
-            <Text style={styles.detailName}>{selectedPost.title}</Text>
+      <ScrollView
+        style={styles.communityWriteScroll}
+        contentContainerStyle={styles.communityWriteContent}
+        showsVerticalScrollIndicator>
+        <View>
+          {showHandle ? <View style={styles.sheetHandle} /> : null}
+          <View style={styles.detailTopRow}>
+            <View style={styles.restaurantTextGroup}>
+              <Text style={styles.detailName}>{selectedPost.title}</Text>
+              <Text style={styles.restaurantMeta}>
+                작성자 {selectedPost.authorId} · {formatDate(selectedPost.createdAt)}
+              </Text>
+            </View>
+            <Pressable
+              style={({pressed}) => [
+                styles.closeButton,
+                pressed ? styles.pressed : null,
+              ]}
+              onPress={onClose}>
+              <Text style={styles.closeButtonText}>목록</Text>
+            </Pressable>
+          </View>
+          {selectedPost.imageUrl ? (
+            <Image
+              source={{uri: selectedPost.imageUrl}}
+              style={styles.postImage}
+              resizeMode="cover"
+            />
+          ) : null}
+          <Text style={styles.postContent}>{selectedPost.content}</Text>
+          <View style={styles.postRestaurantBox}>
+            <Text style={styles.restaurantName}>{selectedPost.restaurant.name}</Text>
             <Text style={styles.restaurantMeta}>
-              작성자 {selectedPost.authorId} · {formatDate(selectedPost.createdAt)}
+              {selectedPost.restaurant.category || '카테고리 미정'}
+            </Text>
+            <Text style={styles.restaurantAddress}>
+              {selectedPost.restaurant.address}
             </Text>
           </View>
-          <Pressable
-            style={({pressed}) => [
-              styles.closeButton,
-              pressed ? styles.pressed : null,
-            ]}
-            onPress={onClose}>
-            <Text style={styles.closeButtonText}>목록</Text>
-          </Pressable>
+          <View style={styles.postActionRow}>
+            <Pressable
+              style={({pressed}) => [
+                styles.recommendButton,
+                selectedPost.recommended ? styles.recommendButtonActive : null,
+                pressed ? styles.pressed : null,
+                loading ? styles.disabled : null,
+              ]}
+              onPress={() => onToggleRecommendation(selectedPost)}
+              disabled={loading}>
+              <Text
+                style={[
+                  styles.recommendButtonText,
+                  selectedPost.recommended ? styles.recommendButtonActiveText : null,
+                ]}>
+                추천 {selectedPost.recommendationCount}
+              </Text>
+            </Pressable>
+            <Pressable
+              style={({pressed}) => [
+                styles.recommendButton,
+                saved ? styles.recommendButtonActive : null,
+                pressed ? styles.pressed : null,
+                loading || saved ? styles.disabled : null,
+              ]}
+              onPress={() => onSaveRestaurant(selectedPost)}
+              disabled={loading || saved}>
+              <Text
+                style={[
+                  styles.recommendButtonText,
+                  saved ? styles.recommendButtonActiveText : null,
+                ]}>
+                {saved ? '저장됨' : '장소 저장'}
+              </Text>
+            </Pressable>
+          </View>
+          <View style={styles.commentSection}>
+            <Text style={styles.savedPlaceTitle}>댓글 {selectedPost.commentCount}</Text>
+            {comments.length > 0 ? (
+              <View style={styles.commentList}>
+                {comments.map(comment => (
+                  <View key={comment.id} style={styles.commentItem}>
+                    <Text style={styles.restaurantMeta}>
+                      작성자 {comment.authorId} · {formatDate(comment.createdAt)}
+                    </Text>
+                    <Text style={styles.commentContent}>{comment.content}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <Text style={styles.savedPlaceEmpty}>아직 댓글이 없습니다.</Text>
+            )}
+            <View style={styles.commentInputRow}>
+              <TextInput
+                style={[styles.input, styles.commentInput]}
+                placeholder="댓글 작성"
+                value={commentContent}
+                onChangeText={onChangeCommentContent}
+              />
+              <Pressable
+                style={({pressed}) => [
+                  styles.inlineSearchButton,
+                  pressed ? styles.pressed : null,
+                  loading ? styles.disabled : null,
+                ]}
+                onPress={onCreateComment}
+                disabled={loading}>
+                <Text style={styles.inlineSearchButtonText}>등록</Text>
+              </Pressable>
+            </View>
+          </View>
         </View>
-        <Text style={styles.postContent}>{selectedPost.content}</Text>
-        <View style={styles.postRestaurantBox}>
-          <Text style={styles.restaurantName}>{selectedPost.restaurant.name}</Text>
-          <Text style={styles.restaurantMeta}>
-            {selectedPost.restaurant.category || '카테고리 미정'}
-          </Text>
-          <Text style={styles.restaurantAddress}>
-            {selectedPost.restaurant.address}
-          </Text>
-        </View>
-        <PrimaryButton
-          label={saved ? '저장됨' : '내 맛집에 저장'}
-          onPress={() => onSaveRestaurant(selectedPost)}
-          disabled={loading || saved}
-        />
-      </View>
+      </ScrollView>
     );
   }
 
@@ -1375,6 +1644,9 @@ function CommunitySheet({
                     {post.restaurant.address}
                   </Text>
                   <Text style={styles.postDate}>{formatDate(post.createdAt)}</Text>
+                  <Text style={styles.postDate}>
+                    추천 {post.recommendationCount} · 댓글 {post.commentCount}
+                  </Text>
                 </View>
                 <Pressable
                   style={({pressed}) => [
@@ -2682,6 +2954,13 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: 14,
   },
+  postImage: {
+    backgroundColor: '#EEF4EC',
+    borderRadius: 8,
+    height: 180,
+    marginBottom: 14,
+    width: '100%',
+  },
   postRestaurantBox: {
     backgroundColor: '#FCFBF7',
     borderColor: '#E4E0D5',
@@ -2690,6 +2969,63 @@ const styles = StyleSheet.create({
     gap: 5,
     marginBottom: 12,
     padding: 12,
+  },
+  postActionRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 16,
+  },
+  recommendButton: {
+    alignItems: 'center',
+    borderColor: '#C9C2B0',
+    borderRadius: 8,
+    borderWidth: 1,
+    flex: 1,
+    justifyContent: 'center',
+    minHeight: 44,
+    paddingHorizontal: 12,
+  },
+  recommendButtonActive: {
+    backgroundColor: '#49624A',
+    borderColor: '#49624A',
+  },
+  recommendButtonText: {
+    color: '#49624A',
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  recommendButtonActiveText: {
+    color: '#FFFFFF',
+  },
+  commentSection: {
+    borderTopColor: '#E4E0D5',
+    borderTopWidth: 1,
+    paddingTop: 14,
+  },
+  commentList: {
+    gap: 10,
+    marginBottom: 12,
+  },
+  commentItem: {
+    backgroundColor: '#FCFBF7',
+    borderColor: '#E4E0D5',
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 5,
+    padding: 10,
+  },
+  commentContent: {
+    color: '#3F4438',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  commentInputRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  commentInput: {
+    flex: 1,
   },
   accountText: {
     color: '#505449',
