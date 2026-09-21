@@ -1,12 +1,5 @@
 import React from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  Text,
-  TextInput,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import {View} from 'react-native';
 import {styles} from '../styles';
 import type {
   ActivePanel,
@@ -17,77 +10,13 @@ import type {
   Message,
   Restaurant,
 } from '../types';
-import {CommunitySheet} from './CommunitySheet';
-import {FriendSearchSheet} from './FriendSearchSheet';
-import {MapAccountSheet} from './AccountSheet';
-import {MapPreview} from './MapPreview';
-import {MapRestaurantDetail, MapRestaurantSheet} from './RestaurantSheets';
-import {findSavedRestaurant} from '../utils/restaurants';
+import {BottomTabBar} from './home/BottomTabBar';
+import {CommunityTab} from './home/CommunityTab';
+import {MapTab} from './home/MapTab';
+import {MyPageTab} from './home/MyPageTab';
+import {SearchTab} from './home/SearchTab';
 
-export function MapHome({
-  query,
-  message,
-  loading,
-  restaurants,
-  savedRestaurants,
-  selectedRestaurant,
-  communityPosts,
-  selectedCommunityPost,
-  postDraftRestaurant,
-  postWriting,
-  postPlaceQuery,
-  postPlaceResults,
-  postTitle,
-  postContent,
-  postImageUrl,
-  communityComments,
-  commentContent,
-  userSearchQuery,
-  searchedUsers,
-  friendRequests,
-  friends,
-  selectedFriend,
-  friendRestaurants,
-  savedIdSet,
-  activePanel,
-  userId,
-  currentPassword,
-  newPassword,
-  onChangeQuery,
-  onSearch,
-  onSelectRestaurant,
-  onToggleSaved,
-  onOpenMap,
-  onOpenCommunity,
-  onOpenSearch,
-  onSearchUsers,
-  onRequestFriend,
-  onAcceptFriendRequest,
-  onRejectFriendRequest,
-  onSelectFriend,
-  onChangeUserSearchQuery,
-  onSelectCommunityPost,
-  onSaveCommunityRestaurant,
-  onToggleCommunityRecommendation,
-  onStartCommunityPost,
-  onCancelCommunityPost,
-  onSearchCommunityPostPlaces,
-  onSelectCommunityPostPlace,
-  onCreateCommunityPost,
-  onChangePostPlaceQuery,
-  onChangePostTitle,
-  onChangePostContent,
-  onChangePostImageUrl,
-  onCreateCommunityComment,
-  onChangeCommentContent,
-  onCloseDetail,
-  onOpenMyPage,
-  onChangeCurrentPassword,
-  onChangeNewPassword,
-  onChangePassword,
-  onLogout,
-  onDeleteUser,
-}: {
+type MapHomeProps = {
   query: string;
   message: Message;
   loading: boolean;
@@ -150,312 +79,99 @@ export function MapHome({
   onChangePassword: () => void;
   onLogout: () => void;
   onDeleteUser: () => void;
-}) {
-  const {height} = useWindowDimensions();
-  const hasSearchResults = restaurants.length > 0;
-  const mapRestaurants = hasSearchResults ? restaurants : savedRestaurants;
-  const sheetRestaurants = selectedRestaurant
-    ? []
-    : hasSearchResults
-      ? restaurants
-      : savedRestaurants;
+};
 
+export function MapHome(props: MapHomeProps) {
   return (
     <View style={styles.mapHome}>
-      {activePanel === 'map' ? (
-        <>
-          <MapPreview
-            restaurants={mapRestaurants}
-            selectedRestaurant={selectedRestaurant}
-            onSelectRestaurant={onSelectRestaurant}
-          />
-
-          <View style={styles.mapTopPanel}>
-            <View style={styles.mapBrandRow}>
-              <View>
-                <Text style={styles.mapEyebrow}>Natural Taste</Text>
-                <Text style={styles.mapTitle}>내 주변 맛집 지도</Text>
-              </View>
-            </View>
-
-            <View style={styles.mapSearchBar}>
-              <TextInput
-                style={styles.mapSearchInput}
-                placeholder="지역, 음식, 가게 검색"
-                value={query}
-                onChangeText={onChangeQuery}
-                returnKeyType="search"
-                onSubmitEditing={onSearch}
-              />
-              <Pressable
-                style={({pressed}) => [
-                  styles.mapSearchButton,
-                  pressed ? styles.pressed : null,
-                  loading ? styles.disabled : null,
-                ]}
-                onPress={onSearch}
-                disabled={loading}>
-                <Text style={styles.mapSearchButtonText}>검색</Text>
-              </Pressable>
-            </View>
-
-            <View
-              style={[
-                styles.mapStatus,
-                message.tone === 'error' ? styles.messageError : null,
-                message.tone === 'success' ? styles.messageSuccess : null,
-              ]}>
-              {loading ? <ActivityIndicator color="#49624A" /> : null}
-              <Text style={styles.mapStatusText} numberOfLines={2}>
-                {message.text}
-              </Text>
-            </View>
-          </View>
-
-          <View
-            style={[
-              styles.bottomSheet,
-              styles.bottomSheetAboveTabs,
-              {maxHeight: Math.max(230, height * 0.42)},
-            ]}>
-            {selectedRestaurant ? (
-              <MapRestaurantDetail
-                restaurant={selectedRestaurant}
-                saved={Boolean(
-                  selectedRestaurant.saved ||
-                    findSavedRestaurant(selectedRestaurant, savedRestaurants),
-                )}
-                loading={loading}
-                onToggleSaved={onToggleSaved}
-                onClose={onCloseDetail}
-              />
-            ) : (
-              <MapRestaurantSheet
-                title={hasSearchResults ? '검색 결과' : '저장한 맛집'}
-                emptyText={
-                  hasSearchResults
-                    ? '검색 결과가 없습니다.'
-                    : '저장한 맛집이 지도에 표시됩니다.'
-                }
-                restaurants={sheetRestaurants}
-                savedIdSet={savedIdSet}
-                loading={loading}
-                onSelectRestaurant={onSelectRestaurant}
-                onToggleSaved={onToggleSaved}
-              />
-            )}
-          </View>
-        </>
-      ) : activePanel === 'community' ? (
-        <View style={styles.tabScreen}>
-          <TabScreenHeader
-            eyebrow="Community"
-            title="커뮤니티"
-            message={message}
-            loading={loading}
-          />
-          <CommunitySheet
-            posts={communityPosts}
-            selectedPost={selectedCommunityPost}
-            draftRestaurant={postDraftRestaurant}
-            writing={postWriting}
-            placeQuery={postPlaceQuery}
-            placeResults={postPlaceResults}
-            title={postTitle}
-            content={postContent}
-            imageUrl={postImageUrl}
-            comments={communityComments}
-            commentContent={commentContent}
-            savedRestaurants={savedRestaurants}
-            loading={loading}
-            onSelectPost={onSelectCommunityPost}
-            onSaveRestaurant={onSaveCommunityRestaurant}
-            onToggleRecommendation={onToggleCommunityRecommendation}
-            onStartPost={onStartCommunityPost}
-            onCancelPost={onCancelCommunityPost}
-            onSearchPlaces={onSearchCommunityPostPlaces}
-            onSelectPlace={onSelectCommunityPostPlace}
-            onCreatePost={onCreateCommunityPost}
-            onChangePlaceQuery={onChangePostPlaceQuery}
-            onChangeTitle={onChangePostTitle}
-            onChangeContent={onChangePostContent}
-            onChangeImageUrl={onChangePostImageUrl}
-            onCreateComment={onCreateCommunityComment}
-            onChangeCommentContent={onChangeCommentContent}
-            onClose={() => onSelectCommunityPost(null)}
-            showHandle={false}
-          />
-        </View>
-      ) : activePanel === 'search' ? (
-        <View style={styles.tabScreen}>
-          <TabScreenHeader
-            eyebrow="Search"
-            title="검색"
-            message={message}
-            loading={loading}
-          />
-          <FriendSearchSheet
-            query={userSearchQuery}
-            searchedUsers={searchedUsers}
-            friendRequests={friendRequests}
-            friends={friends}
-            selectedFriend={selectedFriend}
-            friendRestaurants={friendRestaurants}
-            savedRestaurants={savedRestaurants}
-            loading={loading}
-            onChangeQuery={onChangeUserSearchQuery}
-            onSearchUsers={onSearchUsers}
-            onRequestFriend={onRequestFriend}
-            onAcceptRequest={onAcceptFriendRequest}
-            onRejectRequest={onRejectFriendRequest}
-            onSelectFriend={onSelectFriend}
-            onToggleSaved={onToggleSaved}
-          />
-        </View>
+      {props.activePanel === 'map' ? (
+        <MapTab
+          query={props.query}
+          message={props.message}
+          loading={props.loading}
+          restaurants={props.restaurants}
+          savedRestaurants={props.savedRestaurants}
+          selectedRestaurant={props.selectedRestaurant}
+          savedIdSet={props.savedIdSet}
+          onChangeQuery={props.onChangeQuery}
+          onSearch={props.onSearch}
+          onSelectRestaurant={props.onSelectRestaurant}
+          onToggleSaved={props.onToggleSaved}
+          onCloseDetail={props.onCloseDetail}
+        />
+      ) : props.activePanel === 'community' ? (
+        <CommunityTab
+          message={props.message}
+          loading={props.loading}
+          communityPosts={props.communityPosts}
+          selectedCommunityPost={props.selectedCommunityPost}
+          postDraftRestaurant={props.postDraftRestaurant}
+          postWriting={props.postWriting}
+          postPlaceQuery={props.postPlaceQuery}
+          postPlaceResults={props.postPlaceResults}
+          postTitle={props.postTitle}
+          postContent={props.postContent}
+          postImageUrl={props.postImageUrl}
+          communityComments={props.communityComments}
+          commentContent={props.commentContent}
+          savedRestaurants={props.savedRestaurants}
+          onSelectCommunityPost={props.onSelectCommunityPost}
+          onSaveCommunityRestaurant={props.onSaveCommunityRestaurant}
+          onToggleCommunityRecommendation={props.onToggleCommunityRecommendation}
+          onStartCommunityPost={props.onStartCommunityPost}
+          onCancelCommunityPost={props.onCancelCommunityPost}
+          onSearchCommunityPostPlaces={props.onSearchCommunityPostPlaces}
+          onSelectCommunityPostPlace={props.onSelectCommunityPostPlace}
+          onCreateCommunityPost={props.onCreateCommunityPost}
+          onChangePostPlaceQuery={props.onChangePostPlaceQuery}
+          onChangePostTitle={props.onChangePostTitle}
+          onChangePostContent={props.onChangePostContent}
+          onChangePostImageUrl={props.onChangePostImageUrl}
+          onCreateCommunityComment={props.onCreateCommunityComment}
+          onChangeCommentContent={props.onChangeCommentContent}
+        />
+      ) : props.activePanel === 'search' ? (
+        <SearchTab
+          message={props.message}
+          loading={props.loading}
+          userSearchQuery={props.userSearchQuery}
+          searchedUsers={props.searchedUsers}
+          friendRequests={props.friendRequests}
+          friends={props.friends}
+          selectedFriend={props.selectedFriend}
+          friendRestaurants={props.friendRestaurants}
+          savedRestaurants={props.savedRestaurants}
+          onChangeUserSearchQuery={props.onChangeUserSearchQuery}
+          onSearchUsers={props.onSearchUsers}
+          onRequestFriend={props.onRequestFriend}
+          onAcceptFriendRequest={props.onAcceptFriendRequest}
+          onRejectFriendRequest={props.onRejectFriendRequest}
+          onSelectFriend={props.onSelectFriend}
+          onToggleSaved={props.onToggleSaved}
+        />
       ) : (
-        <View style={styles.tabScreen}>
-          <TabScreenHeader
-            eyebrow="My Page"
-            title="마이페이지"
-            message={message}
-            loading={loading}
-          />
-          <MapAccountSheet
-            userId={userId}
-            currentPassword={currentPassword}
-            newPassword={newPassword}
-            loading={loading}
-            onChangeCurrentPassword={onChangeCurrentPassword}
-            onChangeNewPassword={onChangeNewPassword}
-            onChangePassword={onChangePassword}
-            onLogout={onLogout}
-            onDeleteUser={onDeleteUser}
-            showHandle={false}
-          />
-        </View>
+        <MyPageTab
+          message={props.message}
+          loading={props.loading}
+          userId={props.userId}
+          currentPassword={props.currentPassword}
+          newPassword={props.newPassword}
+          onChangeCurrentPassword={props.onChangeCurrentPassword}
+          onChangeNewPassword={props.onChangeNewPassword}
+          onChangePassword={props.onChangePassword}
+          onLogout={props.onLogout}
+          onDeleteUser={props.onDeleteUser}
+        />
       )}
 
       <BottomTabBar
-        activePanel={activePanel}
-        loading={loading}
-        onOpenMap={onOpenMap}
-        onOpenCommunity={onOpenCommunity}
-        onOpenSearch={onOpenSearch}
-        onOpenMyPage={onOpenMyPage}
+        activePanel={props.activePanel}
+        loading={props.loading}
+        onOpenMap={props.onOpenMap}
+        onOpenCommunity={props.onOpenCommunity}
+        onOpenSearch={props.onOpenSearch}
+        onOpenMyPage={props.onOpenMyPage}
       />
     </View>
-  );
-}
-
-function TabScreenHeader({
-  eyebrow,
-  title,
-  message,
-  loading,
-}: {
-  eyebrow: string;
-  title: string;
-  message: Message;
-  loading: boolean;
-}) {
-  return (
-    <View style={styles.tabScreenHeader}>
-      <Text style={styles.mapEyebrow}>{eyebrow}</Text>
-      <Text style={styles.tabScreenTitle}>{title}</Text>
-      <View
-        style={[
-          styles.mapStatus,
-          message.tone === 'error' ? styles.messageError : null,
-          message.tone === 'success' ? styles.messageSuccess : null,
-        ]}>
-        {loading ? <ActivityIndicator color="#49624A" /> : null}
-        <Text style={styles.mapStatusText} numberOfLines={2}>
-          {message.text}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-function BottomTabBar({
-  activePanel,
-  loading,
-  onOpenMap,
-  onOpenCommunity,
-  onOpenSearch,
-  onOpenMyPage,
-}: {
-  activePanel: ActivePanel;
-  loading: boolean;
-  onOpenMap: () => void;
-  onOpenCommunity: () => void;
-  onOpenSearch: () => void;
-  onOpenMyPage: () => void;
-}) {
-  return (
-    <View style={styles.bottomTabBar}>
-      <BottomTabButton
-        label="지도"
-        active={activePanel === 'map'}
-        disabled={loading}
-        onPress={onOpenMap}
-      />
-      <BottomTabButton
-        label="커뮤니티"
-        active={activePanel === 'community'}
-        disabled={loading}
-        onPress={onOpenCommunity}
-      />
-      <BottomTabButton
-        label="검색"
-        active={activePanel === 'search'}
-        disabled={loading}
-        onPress={onOpenSearch}
-      />
-      <BottomTabButton
-        label="마이페이지"
-        active={activePanel === 'mypage'}
-        disabled={loading}
-        onPress={onOpenMyPage}
-      />
-    </View>
-  );
-}
-
-function BottomTabButton({
-  label,
-  active,
-  disabled,
-  onPress,
-}: {
-  label: string;
-  active: boolean;
-  disabled: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      style={({pressed}) => [
-        styles.bottomTabButton,
-        active ? styles.bottomTabButtonActive : null,
-        pressed ? styles.pressed : null,
-        disabled ? styles.disabled : null,
-      ]}
-      onPress={onPress}
-      disabled={disabled}>
-      <View
-        style={[
-          styles.bottomTabIndicator,
-          active ? styles.bottomTabIndicatorActive : null,
-        ]}
-      />
-      <Text
-        style={[
-          styles.bottomTabButtonText,
-          active ? styles.bottomTabButtonTextActive : null,
-        ]}>
-        {label}
-      </Text>
-    </Pressable>
   );
 }
