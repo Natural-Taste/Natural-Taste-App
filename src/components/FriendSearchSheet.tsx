@@ -155,16 +155,52 @@ export function FriendSearchSheet({
 
       <FriendSection title="내 친구" emptyText="아직 친구가 없습니다.">
         {friends.map(friend => (
-          <FriendUserRow
-            key={friend.id}
-            user={friend}
-            actionLabel={
-              selectedFriend?.id === friend.id ? '선택됨' : '맛집 보기'
-            }
-            active={selectedFriend?.id === friend.id}
-            loading={loading}
-            onPress={() => onSelectFriend(friend)}
-          />
+          <View key={friend.id} style={styles.friendRow}>
+            <View style={styles.restaurantTextGroup}>
+              <Text style={styles.restaurantName}>{friend.name}</Text>
+              <Text style={styles.restaurantAddress}>{friend.email}</Text>
+            </View>
+            <View style={styles.friendActionRow}>
+              <Pressable
+                style={({pressed}) => [
+                  styles.smallActionButton,
+                  selectedFriend?.id === friend.id
+                    ? styles.sheetSaveButtonActive
+                    : null,
+                  pressed ? styles.pressed : null,
+                  loading ? styles.disabled : null,
+                ]}
+                onPress={() => onSelectFriend(friend)}
+                disabled={loading}>
+                <Text
+                  style={[
+                    styles.smallActionButtonText,
+                    selectedFriend?.id === friend.id
+                      ? styles.sheetSaveButtonActiveText
+                      : null,
+                  ]}>
+                  {selectedFriend?.id === friend.id ? '선택됨' : '맛집'}
+                </Text>
+              </Pressable>
+              <Pressable
+                style={({pressed}) => [
+                  styles.smallActionButton,
+                  styles.smallActionDangerButton,
+                  pressed ? styles.pressed : null,
+                  loading ? styles.disabled : null,
+                ]}
+                onPress={() => onDeleteFriend(friend)}
+                disabled={loading}>
+                <Text
+                  style={[
+                    styles.smallActionButtonText,
+                    styles.smallActionDangerButtonText,
+                  ]}>
+                  끊기
+                </Text>
+              </Pressable>
+            </View>
+          </View>
         ))}
       </FriendSection>
 
