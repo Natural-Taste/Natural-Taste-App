@@ -9,6 +9,7 @@ import type {
   FriendUser,
   Message,
   Restaurant,
+  UserLocation,
 } from '../types';
 import {BottomTabBar} from './home/BottomTabBar';
 import {CommunityTab} from './home/CommunityTab';
@@ -24,6 +25,7 @@ type MapHomeProps = {
   savedRestaurants: Restaurant[];
   selectedRestaurant: Restaurant | null;
   restaurantMemo: string;
+  userLocation: UserLocation | null;
   communityPosts: CommunityPost[];
   selectedCommunityPost: CommunityPost | null;
   postDraftRestaurant: Restaurant | null;
@@ -53,6 +55,7 @@ type MapHomeProps = {
   profileName: string;
   profileNameDraft: string;
   onChangeQuery: (value: string) => void;
+  onLoadUserLocation: () => void;
   onSearch: () => void;
   onSelectRestaurant: (restaurant: Restaurant) => void;
   onToggleSaved: (restaurant: Restaurant) => void;
@@ -116,8 +119,10 @@ export function MapHome(props: MapHomeProps) {
           savedRestaurants={props.savedRestaurants}
           selectedRestaurant={props.selectedRestaurant}
           restaurantMemo={props.restaurantMemo}
+          userLocation={props.userLocation}
           savedIdSet={props.savedIdSet}
           onChangeQuery={props.onChangeQuery}
+          onLoadUserLocation={props.onLoadUserLocation}
           onSearch={props.onSearch}
           onSelectRestaurant={props.onSelectRestaurant}
           onToggleSaved={props.onToggleSaved}

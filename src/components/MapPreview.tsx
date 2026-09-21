@@ -5,21 +5,23 @@ import {KAKAO_JAVASCRIPT_KEY} from '../config/env.generated';
 import {KAKAO_MAP_BASE_URL, KAKAO_MAP_DOMAIN_ERROR} from '../constants';
 import {createKakaoMapHtml} from '../map/createKakaoMapHtml';
 import {styles} from '../styles';
-import type {Restaurant} from '../types';
+import type {Restaurant, UserLocation} from '../types';
 
 export function MapPreview({
   restaurants,
   selectedRestaurant,
+  userLocation,
   onSelectRestaurant,
 }: {
   restaurants: Restaurant[];
   selectedRestaurant: Restaurant | null;
+  userLocation: UserLocation | null;
   onSelectRestaurant: (restaurant: Restaurant) => void;
 }) {
   const [mapError, setMapError] = useState('');
   const mapHtml = useMemo(
-    () => createKakaoMapHtml(restaurants, selectedRestaurant),
-    [restaurants, selectedRestaurant],
+    () => createKakaoMapHtml(restaurants, selectedRestaurant, userLocation),
+    [restaurants, selectedRestaurant, userLocation],
   );
 
   return (

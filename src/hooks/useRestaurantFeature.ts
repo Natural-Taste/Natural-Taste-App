@@ -1,6 +1,8 @@
 import {useMemo, useState} from 'react';
+import {Platform, PermissionsAndroid} from 'react-native';
+import Geolocation from '@react-native-community/geolocation';
 import {request, getErrorMessage} from '../api/client';
-import type {AuthResponse, Message, Restaurant} from '../types';
+import type {AuthResponse, Message, Restaurant, UserLocation} from '../types';
 import {findSavedRestaurant, getRestaurantKey, toSaveRestaurantBody} from '../utils/restaurants';
 
 type UseRestaurantFeatureParams = {
@@ -15,6 +17,7 @@ export function useRestaurantFeature({auth, setLoading, setMessage}: UseRestaura
   const [savedRestaurants, setSavedRestaurants] = useState<Restaurant[]>([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [restaurantMemo, setRestaurantMemo] = useState('');
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
 
   const savedIdSet = useMemo(
     () =>
@@ -48,6 +51,36 @@ export function useRestaurantFeature({auth, setLoading, setMessage}: UseRestaura
     setSavedRestaurants([]);
     setSelectedRestaurant(null);
     setRestaurantMemo('');
+    setUserLocation(null);
+  };
+
+  const loadUserLocation = async () => {
+    if (Platform.OS === 'android') {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+      );
+      if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+        setMessage({tone: 'error', text: '위치 권한이 필요합니다.'});
+        return;
+      }
+    }
+
+    setLoading(true);
+    Geolocation.getCurrentPosition(
+      position => {
+        setUserLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+        setMessage({tone: 'success', text: '현재 위치를 확인했습니다.'});
+        setLoading(false);
+      },
+      () => {
+        setMessage({tone: 'error', text: '현재 위치를 확인할 수 없습니다.'});
+        setLoading(false);
+      },
+      {enableHighAccuracy: true, timeout: 10000, maximumAge: 60000},
+    );
   };
 
   const searchRestaurants = async () => {
@@ -60,8 +93,13 @@ export function useRestaurantFeature({auth, setLoading, setMessage}: UseRestaura
     setMessage({tone: 'info', text: '맛집을 검색하는 중입니다.'});
 
     try {
+      const params = new URLSearchParams({query: query.trim()});
+      if (userLocation) {
+        params.set('x', String(userLocation.longitude));
+        params.set('y', String(userLocation.latitude));
+      }
       const data = await request<Restaurant[]>(
-        `/restaurants/search?query=${encodeURIComponent(query.trim())}`,
+        `/restaurants/search?${params.toString()}`,
         {auth},
       );
       setRestaurants(data);
@@ -215,6 +253,7 @@ export function useRestaurantFeature({auth, setLoading, setMessage}: UseRestaura
     savedRestaurants,
     selectedRestaurant,
     restaurantMemo,
+    userLocation,
     savedIdSet,
     visibleRestaurants,
     setQuery,
@@ -223,6 +262,7 @@ export function useRestaurantFeature({auth, setLoading, setMessage}: UseRestaura
     setSelectedRestaurant,
     setRestaurantMemo,
     resetRestaurants,
+    loadUserLocation,
     searchRestaurants,
     loadSavedRestaurants,
     toggleSaved,

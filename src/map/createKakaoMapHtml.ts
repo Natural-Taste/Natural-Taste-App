@@ -1,11 +1,12 @@
 import {KAKAO_JAVASCRIPT_KEY} from '../config/env.generated';
 import {KAKAO_MAP_DOMAIN_ERROR} from '../constants';
-import type {Restaurant} from '../types';
+import type {Restaurant, UserLocation} from '../types';
 import {getRestaurantKey} from '../utils/restaurants';
 
 export function createKakaoMapHtml(
   restaurants: Restaurant[],
   selectedRestaurant: Restaurant | null,
+  userLocation: UserLocation | null,
 ) {
   const markers = restaurants.slice(0, 30).map((restaurant, index) => ({
     index,
@@ -18,8 +19,8 @@ export function createKakaoMapHtml(
       : index === 0,
   }));
   const firstRestaurant = selectedRestaurant ?? restaurants[0];
-  const latitude = firstRestaurant?.latitude ?? 37.5665;
-  const longitude = firstRestaurant?.longitude ?? 126.978;
+  const latitude = firstRestaurant?.latitude ?? userLocation?.latitude ?? 37.5665;
+  const longitude = firstRestaurant?.longitude ?? userLocation?.longitude ?? 126.978;
 
   return `
 <!doctype html>
@@ -100,6 +101,18 @@ export function createKakaoMapHtml(
               level: 4
             });
             const bounds = new kakao.maps.LatLngBounds();
+            const userLocation = ${JSON.stringify(userLocation)};
+
+            if (userLocation) {
+              const userPosition = new kakao.maps.LatLng(userLocation.latitude, userLocation.longitude);
+              bounds.extend(userPosition);
+
+              new kakao.maps.CustomOverlay({
+                position: userPosition,
+                content: '<div class="label selected">내 위치</div>',
+                yAnchor: 1
+              }).setMap(map);
+            }
 
             markers.forEach(function (item) {
               const position = new kakao.maps.LatLng(item.latitude, item.longitude);
@@ -120,7 +133,7 @@ export function createKakaoMapHtml(
               }).setMap(map);
             });
 
-            if (markers.length > 1) {
+            if (markers.length > 1 || (markers.length > 0 && userLocation)) {
               map.setBounds(bounds);
             }
           } catch (error) {

@@ -102,6 +102,28 @@ export const styles = StyleSheet.create({
     minHeight: 42,
     paddingHorizontal: 10,
   },
+  mapLocationButton: {
+    alignItems: 'center',
+    backgroundColor: '#EEF4EA',
+    borderColor: '#B8C8B6',
+    borderRadius: 8,
+    borderWidth: 1,
+    justifyContent: 'center',
+    minHeight: 42,
+    paddingHorizontal: 10,
+  },
+  mapLocationButtonActive: {
+    backgroundColor: '#49624A',
+    borderColor: '#49624A',
+  },
+  mapLocationButtonText: {
+    color: '#49624A',
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  mapLocationButtonActiveText: {
+    color: '#FFFFFF',
+  },
   mapSearchButton: {
     alignItems: 'center',
     backgroundColor: '#23251F',

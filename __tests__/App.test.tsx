@@ -24,6 +24,10 @@ jest.mock('react-native-image-picker', () => ({
   launchImageLibrary: jest.fn(),
 }));
 
+jest.mock('@react-native-community/geolocation', () => ({
+  getCurrentPosition: jest.fn(),
+}));
+
 test('renders correctly', async () => {
   await ReactTestRenderer.act(() => {
     ReactTestRenderer.create(<App />);

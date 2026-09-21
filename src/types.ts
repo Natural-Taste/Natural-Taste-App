@@ -28,6 +28,11 @@ export type Restaurant = {
   memo?: string | null;
 };
 
+export type UserLocation = {
+  latitude: number;
+  longitude: number;
+};
+
 export type CommunityPost = {
   id: number;
   authorId: number;

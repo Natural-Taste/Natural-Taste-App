@@ -1,7 +1,7 @@
 import React from 'react';
 import {ActivityIndicator, Pressable, Text, TextInput, useWindowDimensions, View} from 'react-native';
 import {styles} from '../../styles';
-import type {Message, Restaurant} from '../../types';
+import type {Message, Restaurant, UserLocation} from '../../types';
 import {findSavedRestaurant} from '../../utils/restaurants';
 import {MapPreview} from '../MapPreview';
 import {MapRestaurantDetail, MapRestaurantSheet} from '../RestaurantSheets';
@@ -14,8 +14,10 @@ type MapTabProps = {
   savedRestaurants: Restaurant[];
   selectedRestaurant: Restaurant | null;
   restaurantMemo: string;
+  userLocation: UserLocation | null;
   savedIdSet: Set<number>;
   onChangeQuery: (value: string) => void;
+  onLoadUserLocation: () => void;
   onSearch: () => void;
   onSelectRestaurant: (restaurant: Restaurant) => void;
   onToggleSaved: (restaurant: Restaurant) => void;
@@ -32,8 +34,10 @@ export function MapTab({
   savedRestaurants,
   selectedRestaurant,
   restaurantMemo,
+  userLocation,
   savedIdSet,
   onChangeQuery,
+  onLoadUserLocation,
   onSearch,
   onSelectRestaurant,
   onToggleSaved,
@@ -62,6 +66,7 @@ export function MapTab({
       <MapPreview
         restaurants={mapRestaurants}
         selectedRestaurant={selectedRestaurant}
+        userLocation={userLocation}
         onSelectRestaurant={onSelectRestaurant}
       />
 
@@ -74,9 +79,26 @@ export function MapTab({
         </View>
 
         <View style={styles.mapSearchBar}>
+          <Pressable
+            style={({pressed}) => [
+              styles.mapLocationButton,
+              userLocation ? styles.mapLocationButtonActive : null,
+              pressed ? styles.pressed : null,
+              loading ? styles.disabled : null,
+            ]}
+            onPress={onLoadUserLocation}
+            disabled={loading}>
+            <Text
+              style={[
+                styles.mapLocationButtonText,
+                userLocation ? styles.mapLocationButtonActiveText : null,
+              ]}>
+              현위치
+            </Text>
+          </Pressable>
           <TextInput
             style={styles.mapSearchInput}
-            placeholder="지역, 음식, 가게 검색"
+            placeholder={userLocation ? '내 주변 음식, 가게 검색' : '지역, 음식, 가게 검색'}
             value={query}
             onChangeText={onChangeQuery}
             returnKeyType="search"
