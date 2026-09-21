@@ -47,6 +47,7 @@ export function useFoodMapApp() {
     userSearchQuery,
     searchedUsers,
     friendRequests,
+    sentFriendRequests,
     friends,
     selectedFriend,
     friendRestaurants,
@@ -57,9 +58,12 @@ export function useFoodMapApp() {
     searchUsers,
     requestFriend,
     loadFriendRequests,
+    loadSentFriendRequests,
     loadFriends,
     acceptFriendRequest,
     rejectFriendRequest,
+    cancelSentFriendRequest,
+    deleteFriend,
     selectFriend,
   } = useFriendFeature({auth, setLoading, setMessage});
 
@@ -227,7 +231,7 @@ export function useFoodMapApp() {
     setSelectedRestaurant(null);
     resetCommunitySelection();
     setActivePanel('search');
-    await Promise.all([loadFriendRequests(), loadFriends()]);
+    await Promise.all([loadFriendRequests(), loadSentFriendRequests(), loadFriends()]);
   };
 
   const selectRestaurant = (restaurant: Restaurant) => {
@@ -284,6 +288,7 @@ export function useFoodMapApp() {
       userSearchQuery,
       searchedUsers,
       friendRequests,
+      sentFriendRequests,
       friends,
       selectedFriend,
       friendRestaurants,
@@ -303,6 +308,8 @@ export function useFoodMapApp() {
       onRequestFriend: requestFriend,
       onAcceptFriendRequest: acceptFriendRequest,
       onRejectFriendRequest: rejectFriendRequest,
+      onCancelSentFriendRequest: cancelSentFriendRequest,
+      onDeleteFriend: deleteFriend,
       onSelectFriend: selectFriend,
       onChangeUserSearchQuery: setUserSearchQuery,
       onSelectCommunityPost: selectCommunityPost,

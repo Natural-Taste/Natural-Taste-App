@@ -47,11 +47,13 @@ export type FriendUser = {
   id: number;
   email: string;
   name: string;
+  relationshipStatus: 'NONE' | 'FRIEND' | 'SENT_REQUEST' | 'RECEIVED_REQUEST';
 };
 
 export type FriendRequest = {
   id: number;
   requester: FriendUser;
+  receiver?: FriendUser | null;
   createdAt: string;
 };
 

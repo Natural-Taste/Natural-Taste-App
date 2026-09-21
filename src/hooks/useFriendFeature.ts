@@ -12,6 +12,7 @@ export function useFriendFeature({auth, setLoading, setMessage}: UseFriendFeatur
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [searchedUsers, setSearchedUsers] = useState<FriendUser[]>([]);
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
+  const [sentFriendRequests, setSentFriendRequests] = useState<FriendRequest[]>([]);
   const [friends, setFriends] = useState<FriendUser[]>([]);
   const [selectedFriend, setSelectedFriend] = useState<FriendUser | null>(null);
   const [friendRestaurants, setFriendRestaurants] = useState<Restaurant[]>([]);
@@ -20,9 +21,21 @@ export function useFriendFeature({auth, setLoading, setMessage}: UseFriendFeatur
     setUserSearchQuery('');
     setSearchedUsers([]);
     setFriendRequests([]);
+    setSentFriendRequests([]);
     setFriends([]);
     setSelectedFriend(null);
     setFriendRestaurants([]);
+  };
+
+  const updateSearchedUserStatus = (
+    userId: number,
+    relationshipStatus: FriendUser['relationshipStatus'],
+  ) => {
+    setSearchedUsers(current =>
+      current.map(user =>
+        user.id === userId ? {...user, relationshipStatus} : user,
+      ),
+    );
   };
 
   const searchUsers = async () => {
@@ -62,12 +75,16 @@ export function useFriendFeature({auth, setLoading, setMessage}: UseFriendFeatur
 
     setLoading(true);
     try {
-      await request('/friends/requests', {
+      const friendRequest = await request<FriendRequest>('/friends/requests', {
         method: 'POST',
         auth,
         body: {receiverId: user.id},
       });
-      setSearchedUsers(current => current.filter(item => item.id !== user.id));
+      setSentFriendRequests(current => [
+        friendRequest,
+        ...current.filter(item => item.id !== friendRequest.id),
+      ]);
+      updateSearchedUserStatus(user.id, 'SENT_REQUEST');
       setMessage({tone: 'success', text: '친구 요청을 보냈습니다.'});
     } catch (error) {
       setMessage({
@@ -93,6 +110,24 @@ export function useFriendFeature({auth, setLoading, setMessage}: UseFriendFeatur
       setMessage({
         tone: 'error',
         text: getErrorMessage(error, '친구 요청 조회에 실패했습니다.'),
+      });
+    }
+  };
+
+  const loadSentFriendRequests = async () => {
+    if (!auth) {
+      return;
+    }
+
+    try {
+      const data = await request<FriendRequest[]>('/friends/requests/sent', {
+        auth,
+      });
+      setSentFriendRequests(data);
+    } catch (error) {
+      setMessage({
+        tone: 'error',
+        text: getErrorMessage(error, '보낸 친구 요청 조회에 실패했습니다.'),
       });
     }
   };
@@ -126,14 +161,67 @@ export function useFriendFeature({auth, setLoading, setMessage}: UseFriendFeatur
       );
       setFriendRequests(current => current.filter(item => item.id !== friendRequest.id));
       setFriends(current => [
-        accepted,
+        {...accepted, relationshipStatus: 'FRIEND'},
         ...current.filter(item => item.id !== accepted.id),
       ]);
+      updateSearchedUserStatus(accepted.id, 'FRIEND');
       setMessage({tone: 'success', text: '친구 요청을 수락했습니다.'});
     } catch (error) {
       setMessage({
         tone: 'error',
         text: getErrorMessage(error, '친구 요청 수락에 실패했습니다.'),
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const cancelSentFriendRequest = async (friendRequest: FriendRequest) => {
+    if (!auth || !friendRequest.receiver) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await request(`/friends/requests/sent/${friendRequest.id}`, {
+        method: 'DELETE',
+        auth,
+      });
+      setSentFriendRequests(current => current.filter(item => item.id !== friendRequest.id));
+      updateSearchedUserStatus(friendRequest.receiver.id, 'NONE');
+      setMessage({tone: 'success', text: '친구 요청을 취소했습니다.'});
+    } catch (error) {
+      setMessage({
+        tone: 'error',
+        text: getErrorMessage(error, '친구 요청 취소에 실패했습니다.'),
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteFriend = async (friend: FriendUser) => {
+    if (!auth) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await request(`/friends/${friend.id}`, {
+        method: 'DELETE',
+        auth,
+      });
+      setFriends(current => current.filter(item => item.id !== friend.id));
+      updateSearchedUserStatus(friend.id, 'NONE');
+      if (selectedFriend?.id === friend.id) {
+        setSelectedFriend(null);
+        setFriendRestaurants([]);
+      }
+      setMessage({tone: 'success', text: '친구를 끊었습니다.'});
+    } catch (error) {
+      setMessage({
+        tone: 'error',
+        text: getErrorMessage(error, '친구 끊기에 실패했습니다.'),
       });
     } finally {
       setLoading(false);
@@ -202,6 +290,7 @@ export function useFriendFeature({auth, setLoading, setMessage}: UseFriendFeatur
     userSearchQuery,
     searchedUsers,
     friendRequests,
+    sentFriendRequests,
     friends,
     selectedFriend,
     friendRestaurants,
@@ -212,9 +301,12 @@ export function useFriendFeature({auth, setLoading, setMessage}: UseFriendFeatur
     searchUsers,
     requestFriend,
     loadFriendRequests,
+    loadSentFriendRequests,
     loadFriends,
     acceptFriendRequest,
     rejectFriendRequest,
+    cancelSentFriendRequest,
+    deleteFriend,
     selectFriend,
   };
 }

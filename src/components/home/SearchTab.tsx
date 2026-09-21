@@ -11,6 +11,7 @@ type SearchTabProps = {
   userSearchQuery: string;
   searchedUsers: FriendUser[];
   friendRequests: FriendRequest[];
+  sentFriendRequests: FriendRequest[];
   friends: FriendUser[];
   selectedFriend: FriendUser | null;
   friendRestaurants: Restaurant[];
@@ -20,6 +21,8 @@ type SearchTabProps = {
   onRequestFriend: (user: FriendUser) => void;
   onAcceptFriendRequest: (request: FriendRequest) => void;
   onRejectFriendRequest: (request: FriendRequest) => void;
+  onCancelSentFriendRequest: (request: FriendRequest) => void;
+  onDeleteFriend: (friend: FriendUser) => void;
   onSelectFriend: (friend: FriendUser | null) => void;
   onToggleSaved: (restaurant: Restaurant) => void;
 };
@@ -30,6 +33,7 @@ export function SearchTab({
   userSearchQuery,
   searchedUsers,
   friendRequests,
+  sentFriendRequests,
   friends,
   selectedFriend,
   friendRestaurants,
@@ -39,6 +43,8 @@ export function SearchTab({
   onRequestFriend,
   onAcceptFriendRequest,
   onRejectFriendRequest,
+  onCancelSentFriendRequest,
+  onDeleteFriend,
   onSelectFriend,
   onToggleSaved,
 }: SearchTabProps) {
@@ -54,6 +60,7 @@ export function SearchTab({
         query={userSearchQuery}
         searchedUsers={searchedUsers}
         friendRequests={friendRequests}
+        sentFriendRequests={sentFriendRequests}
         friends={friends}
         selectedFriend={selectedFriend}
         friendRestaurants={friendRestaurants}
@@ -64,6 +71,8 @@ export function SearchTab({
         onRequestFriend={onRequestFriend}
         onAcceptRequest={onAcceptFriendRequest}
         onRejectRequest={onRejectFriendRequest}
+        onCancelSentRequest={onCancelSentFriendRequest}
+        onDeleteFriend={onDeleteFriend}
         onSelectFriend={onSelectFriend}
         onToggleSaved={onToggleSaved}
       />

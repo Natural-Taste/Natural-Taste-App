@@ -37,6 +37,7 @@ type MapHomeProps = {
   userSearchQuery: string;
   searchedUsers: FriendUser[];
   friendRequests: FriendRequest[];
+  sentFriendRequests: FriendRequest[];
   friends: FriendUser[];
   selectedFriend: FriendUser | null;
   friendRestaurants: Restaurant[];
@@ -56,6 +57,8 @@ type MapHomeProps = {
   onRequestFriend: (user: FriendUser) => void;
   onAcceptFriendRequest: (request: FriendRequest) => void;
   onRejectFriendRequest: (request: FriendRequest) => void;
+  onCancelSentFriendRequest: (request: FriendRequest) => void;
+  onDeleteFriend: (friend: FriendUser) => void;
   onSelectFriend: (friend: FriendUser | null) => void;
   onChangeUserSearchQuery: (value: string) => void;
   onSelectCommunityPost: (post: CommunityPost | null) => void;
@@ -137,6 +140,7 @@ export function MapHome(props: MapHomeProps) {
           userSearchQuery={props.userSearchQuery}
           searchedUsers={props.searchedUsers}
           friendRequests={props.friendRequests}
+          sentFriendRequests={props.sentFriendRequests}
           friends={props.friends}
           selectedFriend={props.selectedFriend}
           friendRestaurants={props.friendRestaurants}
@@ -146,6 +150,8 @@ export function MapHome(props: MapHomeProps) {
           onRequestFriend={props.onRequestFriend}
           onAcceptFriendRequest={props.onAcceptFriendRequest}
           onRejectFriendRequest={props.onRejectFriendRequest}
+          onCancelSentFriendRequest={props.onCancelSentFriendRequest}
+          onDeleteFriend={props.onDeleteFriend}
           onSelectFriend={props.onSelectFriend}
           onToggleSaved={props.onToggleSaved}
         />

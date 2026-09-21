@@ -10,6 +10,7 @@ export function FriendSearchSheet({
   query,
   searchedUsers,
   friendRequests,
+  sentFriendRequests,
   friends,
   selectedFriend,
   friendRestaurants,
@@ -20,12 +21,15 @@ export function FriendSearchSheet({
   onRequestFriend,
   onAcceptRequest,
   onRejectRequest,
+  onCancelSentRequest,
+  onDeleteFriend,
   onSelectFriend,
   onToggleSaved,
 }: {
   query: string;
   searchedUsers: FriendUser[];
   friendRequests: FriendRequest[];
+  sentFriendRequests: FriendRequest[];
   friends: FriendUser[];
   selectedFriend: FriendUser | null;
   friendRestaurants: Restaurant[];
@@ -36,6 +40,8 @@ export function FriendSearchSheet({
   onRequestFriend: (user: FriendUser) => void;
   onAcceptRequest: (request: FriendRequest) => void;
   onRejectRequest: (request: FriendRequest) => void;
+  onCancelSentRequest: (request: FriendRequest) => void;
+  onDeleteFriend: (friend: FriendUser) => void;
   onSelectFriend: (friend: FriendUser | null) => void;
   onToggleSaved: (restaurant: Restaurant) => void;
 }) {
@@ -75,15 +81,35 @@ export function FriendSearchSheet({
       </Field>
 
       <FriendSection title="검색 결과" emptyText="검색한 사용자가 여기에 표시됩니다.">
-        {searchedUsers.map(user => (
-          <FriendUserRow
-            key={user.id}
-            user={user}
-            actionLabel="요청"
-            loading={loading}
-            onPress={() => onRequestFriend(user)}
-          />
-        ))}
+        {searchedUsers.map(user => {
+          const sentRequest = sentFriendRequests.find(
+            request => request.receiver?.id === user.id,
+          );
+          const receivedRequest = friendRequests.find(
+            request => request.requester.id === user.id,
+          );
+          const action = getSearchAction(user, sentRequest, receivedRequest);
+
+          return (
+            <FriendUserRow
+              key={user.id}
+              user={user}
+              actionLabel={action.label}
+              active={user.relationshipStatus === 'FRIEND'}
+              danger={user.relationshipStatus === 'SENT_REQUEST'}
+              loading={loading || action.disabled}
+              onPress={() => {
+                if (action.type === 'request') {
+                  onRequestFriend(user);
+                } else if (action.type === 'cancel' && sentRequest) {
+                  onCancelSentRequest(sentRequest);
+                } else if (action.type === 'accept' && receivedRequest) {
+                  onAcceptRequest(receivedRequest);
+                }
+              }}
+            />
+          );
+        })}
       </FriendSection>
 
       <FriendSection title="받은 친구 요청" emptyText="받은 친구 요청이 없습니다.">
@@ -151,14 +177,33 @@ export function FriendSearchSheet({
               </Text>
               <Text style={styles.restaurantAddress}>{selectedFriend.email}</Text>
             </View>
-            <Pressable
-              style={({pressed}) => [
-                styles.closeButton,
-                pressed ? styles.pressed : null,
-              ]}
-              onPress={() => onSelectFriend(null)}>
-              <Text style={styles.closeButtonText}>닫기</Text>
-            </Pressable>
+            <View style={styles.friendActionRow}>
+              <Pressable
+                style={({pressed}) => [
+                  styles.smallActionButton,
+                  styles.smallActionDangerButton,
+                  pressed ? styles.pressed : null,
+                  loading ? styles.disabled : null,
+                ]}
+                onPress={() => onDeleteFriend(selectedFriend)}
+                disabled={loading}>
+                <Text
+                  style={[
+                    styles.smallActionButtonText,
+                    styles.smallActionDangerButtonText,
+                  ]}>
+                  끊기
+                </Text>
+              </Pressable>
+              <Pressable
+                style={({pressed}) => [
+                  styles.closeButton,
+                  pressed ? styles.pressed : null,
+                ]}
+                onPress={() => onSelectFriend(null)}>
+                <Text style={styles.closeButtonText}>닫기</Text>
+              </Pressable>
+            </View>
           </View>
           {friendRestaurants.length > 0 ? (
             <View style={styles.listStack}>
@@ -232,16 +277,35 @@ function FriendSection({
   );
 }
 
+function getSearchAction(
+  user: FriendUser,
+  sentRequest: FriendRequest | undefined,
+  receivedRequest: FriendRequest | undefined,
+) {
+  if (user.relationshipStatus === 'FRIEND') {
+    return {type: 'none', label: '친구', disabled: true};
+  }
+  if (user.relationshipStatus === 'SENT_REQUEST') {
+    return {type: 'cancel', label: '요청 취소', disabled: !sentRequest};
+  }
+  if (user.relationshipStatus === 'RECEIVED_REQUEST') {
+    return {type: 'accept', label: '수락', disabled: !receivedRequest};
+  }
+  return {type: 'request', label: '요청', disabled: false};
+}
+
 function FriendUserRow({
   user,
   actionLabel,
   active = false,
+  danger = false,
   loading,
   onPress,
 }: {
   user: FriendUser;
   actionLabel: string;
   active?: boolean;
+  danger?: boolean;
   loading: boolean;
   onPress: () => void;
 }) {
@@ -255,6 +319,7 @@ function FriendUserRow({
         style={({pressed}) => [
           styles.sheetSaveButton,
           active ? styles.sheetSaveButtonActive : null,
+          danger ? styles.smallActionDangerButton : null,
           pressed ? styles.pressed : null,
           loading ? styles.disabled : null,
         ]}
@@ -264,6 +329,7 @@ function FriendUserRow({
           style={[
             styles.sheetSaveButtonText,
             active ? styles.sheetSaveButtonActiveText : null,
+            danger ? styles.smallActionDangerButtonText : null,
           ]}>
           {actionLabel}
         </Text>
