@@ -240,6 +240,7 @@ export function useFriendFeature({auth, setLoading, setMessage}: UseFriendFeatur
         auth,
       });
       setFriendRequests(current => current.filter(item => item.id !== friendRequest.id));
+      updateSearchedUserStatus(friendRequest.requester.id, 'NONE');
       setMessage({tone: 'success', text: '친구 요청을 거절했습니다.'});
     } catch (error) {
       setMessage({
