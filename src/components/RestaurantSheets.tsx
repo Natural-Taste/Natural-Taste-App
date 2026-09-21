@@ -1,5 +1,5 @@
 import React from 'react';
-import {Pressable, ScrollView, Text, View} from 'react-native';
+import {Pressable, ScrollView, Text, TextInput, View} from 'react-native';
 import {styles} from '../styles';
 import type {Restaurant} from '../types';
 import {getRestaurantKey} from '../utils/restaurants';
@@ -57,6 +57,11 @@ export function MapRestaurantSheet({
                   <Text style={styles.restaurantAddress} numberOfLines={1}>
                     {restaurant.address}
                   </Text>
+                  {restaurant.memo ? (
+                    <Text style={styles.restaurantMeta} numberOfLines={1}>
+                      메모 {restaurant.memo}
+                    </Text>
+                  ) : null}
                 </View>
                 <Pressable
                   style={({pressed}) => [
@@ -87,14 +92,20 @@ export function MapRestaurantSheet({
 export function MapRestaurantDetail({
   restaurant,
   saved,
+  memo,
   loading,
   onToggleSaved,
+  onChangeMemo,
+  onUpdateMemo,
   onClose,
 }: {
   restaurant: Restaurant;
   saved: boolean;
+  memo: string;
   loading: boolean;
   onToggleSaved: (restaurant: Restaurant) => void;
+  onChangeMemo: (value: string) => void;
+  onUpdateMemo: (restaurant: Restaurant) => void;
   onClose: () => void;
 }) {
   return (
@@ -122,6 +133,28 @@ export function MapRestaurantDetail({
       ) : null}
       {restaurant.placeUrl ? (
         <Text style={styles.detailLine}>장소 URL {restaurant.placeUrl}</Text>
+      ) : null}
+      {saved ? (
+        <View style={styles.memoBox}>
+          <Text style={styles.restaurantMeta}>내 메모</Text>
+          <TextInput
+            style={[styles.input, styles.memoInput]}
+            placeholder="맛집 메모"
+            value={memo}
+            onChangeText={onChangeMemo}
+            multiline
+          />
+          <Pressable
+            style={({pressed}) => [
+              styles.smallActionButton,
+              pressed ? styles.pressed : null,
+              loading ? styles.disabled : null,
+            ]}
+            onPress={() => onUpdateMemo(restaurant)}
+            disabled={loading}>
+            <Text style={styles.smallActionButtonText}>메모 저장</Text>
+          </Pressable>
+        </View>
       ) : null}
       <PrimaryButton
         label={saved ? '저장 취소' : '맛집 저장'}

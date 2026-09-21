@@ -14,6 +14,7 @@ export function useRestaurantFeature({auth, setLoading, setMessage}: UseRestaura
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [savedRestaurants, setSavedRestaurants] = useState<Restaurant[]>([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
+  const [restaurantMemo, setRestaurantMemo] = useState('');
 
   const savedIdSet = useMemo(
     () =>
@@ -46,6 +47,7 @@ export function useRestaurantFeature({auth, setLoading, setMessage}: UseRestaura
     setRestaurants([]);
     setSavedRestaurants([]);
     setSelectedRestaurant(null);
+    setRestaurantMemo('');
   };
 
   const searchRestaurants = async () => {
@@ -140,6 +142,7 @@ export function useRestaurantFeature({auth, setLoading, setMessage}: UseRestaura
             ? {...current, saved: false}
             : current,
         );
+        setRestaurantMemo('');
         setMessage({tone: 'success', text: '저장을 취소했습니다.'});
         return;
       }
@@ -166,20 +169,63 @@ export function useRestaurantFeature({auth, setLoading, setMessage}: UseRestaura
     }
   };
 
+  const updateSavedRestaurantMemo = async (restaurant: Restaurant) => {
+    if (!auth || restaurant.id === null) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const updated = await request<Restaurant>(
+        `/restaurants/saved/${restaurant.id}/memo`,
+        {
+          method: 'PATCH',
+          auth,
+          body: {memo: restaurantMemo.trim() || null},
+        },
+      );
+      setSavedRestaurants(current =>
+        current.map(item =>
+          item.id === updated.id ? {...item, memo: updated.memo} : item,
+        ),
+      );
+      setRestaurants(current =>
+        current.map(item =>
+          item.id === updated.id ? {...item, memo: updated.memo, saved: true} : item,
+        ),
+      );
+      setSelectedRestaurant(current =>
+        current?.id === updated.id ? {...current, memo: updated.memo, saved: true} : current,
+      );
+      setRestaurantMemo(updated.memo ?? '');
+      setMessage({tone: 'success', text: '맛집 메모를 저장했습니다.'});
+    } catch (error) {
+      setMessage({
+        tone: 'error',
+        text: getErrorMessage(error, '맛집 메모 저장에 실패했습니다.'),
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     query,
     restaurants,
     savedRestaurants,
     selectedRestaurant,
+    restaurantMemo,
     savedIdSet,
     visibleRestaurants,
     setQuery,
     setRestaurants,
     setSavedRestaurants,
     setSelectedRestaurant,
+    setRestaurantMemo,
     resetRestaurants,
     searchRestaurants,
     loadSavedRestaurants,
     toggleSaved,
+    updateSavedRestaurantMemo,
   };
 }

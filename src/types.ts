@@ -19,6 +19,7 @@ export type Restaurant = {
   phone?: string;
   placeUrl?: string;
   saved?: boolean;
+  memo?: string | null;
 };
 
 export type CommunityPost = {

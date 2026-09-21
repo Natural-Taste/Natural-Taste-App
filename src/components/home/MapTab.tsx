@@ -13,11 +13,14 @@ type MapTabProps = {
   restaurants: Restaurant[];
   savedRestaurants: Restaurant[];
   selectedRestaurant: Restaurant | null;
+  restaurantMemo: string;
   savedIdSet: Set<number>;
   onChangeQuery: (value: string) => void;
   onSearch: () => void;
   onSelectRestaurant: (restaurant: Restaurant) => void;
   onToggleSaved: (restaurant: Restaurant) => void;
+  onChangeRestaurantMemo: (value: string) => void;
+  onUpdateRestaurantMemo: (restaurant: Restaurant) => void;
   onCloseDetail: () => void;
 };
 
@@ -28,11 +31,14 @@ export function MapTab({
   restaurants,
   savedRestaurants,
   selectedRestaurant,
+  restaurantMemo,
   savedIdSet,
   onChangeQuery,
   onSearch,
   onSelectRestaurant,
   onToggleSaved,
+  onChangeRestaurantMemo,
+  onUpdateRestaurantMemo,
   onCloseDetail,
 }: MapTabProps) {
   const {height} = useWindowDimensions();
@@ -43,6 +49,13 @@ export function MapTab({
     : hasSearchResults
       ? restaurants
       : savedRestaurants;
+  const savedSelectedRestaurant = selectedRestaurant
+    ? findSavedRestaurant(selectedRestaurant, savedRestaurants)
+    : null;
+  const detailRestaurant =
+    selectedRestaurant && savedSelectedRestaurant
+      ? {...selectedRestaurant, ...savedSelectedRestaurant, saved: true}
+      : selectedRestaurant;
 
   return (
     <>
@@ -100,15 +113,15 @@ export function MapTab({
           styles.bottomSheetAboveTabs,
           {maxHeight: Math.max(230, height * 0.42)},
         ]}>
-        {selectedRestaurant ? (
+        {detailRestaurant ? (
           <MapRestaurantDetail
-            restaurant={selectedRestaurant}
-            saved={Boolean(
-              selectedRestaurant.saved ||
-                findSavedRestaurant(selectedRestaurant, savedRestaurants),
-            )}
+            restaurant={detailRestaurant}
+            saved={Boolean(detailRestaurant.saved || savedSelectedRestaurant)}
+            memo={restaurantMemo}
             loading={loading}
             onToggleSaved={onToggleSaved}
+            onChangeMemo={onChangeRestaurantMemo}
+            onUpdateMemo={onUpdateRestaurantMemo}
             onClose={onCloseDetail}
           />
         ) : (

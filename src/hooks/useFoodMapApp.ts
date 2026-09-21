@@ -6,6 +6,7 @@ import {useColorScheme} from 'react-native';
 import {request, getErrorMessage, setUnauthorizedHandler} from '../api/client';
 import {clearStoredAuth, loadStoredAuth, saveStoredAuth} from '../authStorage';
 import {emptyMessage} from '../constants';
+import {findSavedRestaurant} from '../utils/restaurants';
 import type {
   ActivePanel,
   AuthMode,
@@ -33,16 +34,19 @@ export function useFoodMapApp() {
     query,
     savedRestaurants,
     selectedRestaurant,
+    restaurantMemo,
     savedIdSet,
     visibleRestaurants,
     setQuery,
     setRestaurants,
     setSavedRestaurants,
     setSelectedRestaurant,
+    setRestaurantMemo,
     resetRestaurants,
     searchRestaurants,
     loadSavedRestaurants,
     toggleSaved,
+    updateSavedRestaurantMemo,
   } = useRestaurantFeature({auth, setLoading, setMessage});
 
   loadSavedRestaurantsRef.current = loadSavedRestaurants;
@@ -284,8 +288,10 @@ export function useFoodMapApp() {
   };
 
   const selectRestaurant = (restaurant: Restaurant) => {
+    const savedRestaurant = findSavedRestaurant(restaurant, savedRestaurants);
     setActivePanel('map');
-    setSelectedRestaurant(restaurant);
+    setSelectedRestaurant(savedRestaurant ?? restaurant);
+    setRestaurantMemo((savedRestaurant ?? restaurant).memo ?? '');
   };
 
   const openMap = () => {
@@ -323,6 +329,7 @@ export function useFoodMapApp() {
       restaurants: visibleRestaurants,
       savedRestaurants,
       selectedRestaurant,
+      restaurantMemo,
       communityPosts,
       selectedCommunityPost,
       postDraftRestaurant,
@@ -350,6 +357,8 @@ export function useFoodMapApp() {
       onSearch: searchRestaurants,
       onSelectRestaurant: selectRestaurant,
       onToggleSaved: toggleSaved,
+      onChangeRestaurantMemo: setRestaurantMemo,
+      onUpdateRestaurantMemo: updateSavedRestaurantMemo,
       onOpenMap: openMap,
       onOpenCommunity: openCommunity,
       onOpenSearch: openSearch,

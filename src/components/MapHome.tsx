@@ -23,6 +23,7 @@ type MapHomeProps = {
   restaurants: Restaurant[];
   savedRestaurants: Restaurant[];
   selectedRestaurant: Restaurant | null;
+  restaurantMemo: string;
   communityPosts: CommunityPost[];
   selectedCommunityPost: CommunityPost | null;
   postDraftRestaurant: Restaurant | null;
@@ -50,6 +51,8 @@ type MapHomeProps = {
   onSearch: () => void;
   onSelectRestaurant: (restaurant: Restaurant) => void;
   onToggleSaved: (restaurant: Restaurant) => void;
+  onChangeRestaurantMemo: (value: string) => void;
+  onUpdateRestaurantMemo: (restaurant: Restaurant) => void;
   onOpenMap: () => void;
   onOpenCommunity: () => void;
   onOpenSearch: () => void;
@@ -97,11 +100,14 @@ export function MapHome(props: MapHomeProps) {
           restaurants={props.restaurants}
           savedRestaurants={props.savedRestaurants}
           selectedRestaurant={props.selectedRestaurant}
+          restaurantMemo={props.restaurantMemo}
           savedIdSet={props.savedIdSet}
           onChangeQuery={props.onChangeQuery}
           onSearch={props.onSearch}
           onSelectRestaurant={props.onSelectRestaurant}
           onToggleSaved={props.onToggleSaved}
+          onChangeRestaurantMemo={props.onChangeRestaurantMemo}
+          onUpdateRestaurantMemo={props.onUpdateRestaurantMemo}
           onCloseDetail={props.onCloseDetail}
         />
       ) : props.activePanel === 'community' ? (

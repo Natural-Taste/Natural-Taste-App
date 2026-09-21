@@ -733,6 +733,15 @@ export const styles = StyleSheet.create({
     lineHeight: 21,
     marginBottom: 6,
   },
+  memoBox: {
+    gap: 8,
+    marginBottom: 12,
+    marginTop: 10,
+  },
+  memoInput: {
+    minHeight: 72,
+    textAlignVertical: 'top',
+  },
   postContent: {
     color: '#3F4438',
     fontSize: 15,
