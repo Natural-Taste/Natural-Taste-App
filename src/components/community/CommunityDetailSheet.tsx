@@ -29,6 +29,7 @@ type CommunityDetailSheetProps = {
   onChangeEditTitle: (value: string) => void;
   onChangeEditContent: (value: string) => void;
   onChangeEditImageUrl: (value: string) => void;
+  onPickImage: () => void;
   onCreateComment: () => void;
   onStartEditComment: (comment: CommunityComment) => void;
   onCancelEditComment: () => void;
@@ -62,6 +63,7 @@ export function CommunityDetailSheet({
   onChangeEditTitle,
   onChangeEditContent,
   onChangeEditImageUrl,
+  onPickImage,
   onCreateComment,
   onStartEditComment,
   onCancelEditComment,
@@ -108,13 +110,25 @@ export function CommunityDetailSheet({
               />
             </Field>
             <Field label="사진 URL">
-              <TextInput
-                style={styles.input}
-                placeholder="https://example.com/photo.jpg"
-                value={editImageUrl}
-                onChangeText={onChangeEditImageUrl}
-                autoCapitalize="none"
-              />
+              <View style={styles.inlineSearchRow}>
+                <TextInput
+                  style={[styles.input, styles.inlineSearchInput]}
+                  placeholder="https://example.com/photo.jpg"
+                  value={editImageUrl}
+                  onChangeText={onChangeEditImageUrl}
+                  autoCapitalize="none"
+                />
+                <Pressable
+                  style={({pressed}) => [
+                    styles.inlineSearchButton,
+                    pressed ? styles.pressed : null,
+                    loading ? styles.disabled : null,
+                  ]}
+                  onPress={onPickImage}
+                  disabled={loading}>
+                  <Text style={styles.inlineSearchButtonText}>사진 선택</Text>
+                </Pressable>
+              </View>
             </Field>
             <Field label="내용">
               <TextInput

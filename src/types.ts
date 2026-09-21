@@ -51,6 +51,16 @@ export type CommunityComment = {
   updatedAt?: string;
 };
 
+export type ImageUploadResponse = {
+  imageUrl: string;
+};
+
+export type UploadImageFile = {
+  uri: string;
+  type: string;
+  fileName: string;
+};
+
 export type FriendUser = {
   id: number;
   email: string;

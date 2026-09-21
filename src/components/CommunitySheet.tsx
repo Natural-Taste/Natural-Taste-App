@@ -33,6 +33,7 @@ type CommunitySheetProps = {
   onCancelPost: () => void;
   onSearchPlaces: () => void;
   onSelectPlace: (restaurant: Restaurant) => void;
+  onPickImage: () => void;
   onCreatePost: () => void;
   onChangePlaceQuery: (value: string) => void;
   onChangeTitle: (value: string) => void;
@@ -78,6 +79,7 @@ export function CommunitySheet({
   onCancelPost,
   onSearchPlaces,
   onSelectPlace,
+  onPickImage,
   onCreatePost,
   onChangePlaceQuery,
   onChangeTitle,
@@ -108,6 +110,7 @@ export function CommunitySheet({
         onCancelPost={onCancelPost}
         onSearchPlaces={onSearchPlaces}
         onSelectPlace={onSelectPlace}
+        onPickImage={onPickImage}
         onCreatePost={onCreatePost}
         onChangePlaceQuery={onChangePlaceQuery}
         onChangeTitle={onChangeTitle}
@@ -142,6 +145,7 @@ export function CommunitySheet({
         onChangeEditTitle={onChangeTitle}
         onChangeEditContent={onChangeContent}
         onChangeEditImageUrl={onChangeImageUrl}
+        onPickImage={onPickImage}
         onCreateComment={onCreateComment}
         onStartEditComment={onStartEditComment}
         onCancelEditComment={onCancelEditComment}

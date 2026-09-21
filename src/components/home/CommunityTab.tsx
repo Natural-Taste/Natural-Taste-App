@@ -35,6 +35,7 @@ type CommunityTabProps = {
   onCancelCommunityPost: () => void;
   onSearchCommunityPostPlaces: () => void;
   onSelectCommunityPostPlace: (restaurant: Restaurant) => void;
+  onPickCommunityPostImage: () => void;
   onCreateCommunityPost: () => void;
   onChangePostPlaceQuery: (value: string) => void;
   onChangePostTitle: (value: string) => void;
@@ -79,6 +80,7 @@ export function CommunityTab({
   onCancelCommunityPost,
   onSearchCommunityPostPlaces,
   onSelectCommunityPostPlace,
+  onPickCommunityPostImage,
   onCreateCommunityPost,
   onChangePostPlaceQuery,
   onChangePostTitle,
@@ -129,6 +131,7 @@ export function CommunityTab({
         onCancelPost={onCancelCommunityPost}
         onSearchPlaces={onSearchCommunityPostPlaces}
         onSelectPlace={onSelectCommunityPostPlace}
+        onPickImage={onPickCommunityPostImage}
         onCreatePost={onCreateCommunityPost}
         onChangePlaceQuery={onChangePostPlaceQuery}
         onChangeTitle={onChangePostTitle}

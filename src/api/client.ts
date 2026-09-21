@@ -1,5 +1,5 @@
 import {API_BASE_URL} from '../constants';
-import type {AuthResponse} from '../types';
+import type {AuthResponse, ImageUploadResponse, UploadImageFile} from '../types';
 
 let unauthorizedHandler: (() => void) | null = null;
 
@@ -45,6 +45,41 @@ export async function request<T = void>(
   }
 
   return (await response.json()) as T;
+}
+
+export async function uploadImage(
+  file: UploadImageFile,
+  auth: AuthResponse,
+): Promise<ImageUploadResponse> {
+  const formData = new FormData();
+  formData.append('file', {
+    uri: file.uri,
+    type: file.type,
+    name: file.fileName,
+  } as unknown as Blob);
+
+  const response = await fetch(`${API_BASE_URL}/images`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      Authorization: `${auth.tokenType} ${auth.accessToken}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      unauthorizedHandler?.();
+    }
+    throw new ApiError(response.status);
+  }
+
+  const data = (await response.json()) as ImageUploadResponse;
+  return {
+    imageUrl: data.imageUrl.startsWith('/')
+      ? `${API_BASE_URL}${data.imageUrl}`
+      : data.imageUrl,
+  };
 }
 
 export function getErrorMessage(error: unknown, fallback: string) {

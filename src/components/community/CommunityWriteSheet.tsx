@@ -18,6 +18,7 @@ type CommunityWriteSheetProps = {
   onCancelPost: () => void;
   onSearchPlaces: () => void;
   onSelectPlace: (restaurant: Restaurant) => void;
+  onPickImage: () => void;
   onCreatePost: () => void;
   onChangePlaceQuery: (value: string) => void;
   onChangeTitle: (value: string) => void;
@@ -38,6 +39,7 @@ export function CommunityWriteSheet({
   onCancelPost,
   onSearchPlaces,
   onSelectPlace,
+  onPickImage,
   onCreatePost,
   onChangePlaceQuery,
   onChangeTitle,
@@ -126,13 +128,25 @@ export function CommunityWriteSheet({
           />
         </Field>
         <Field label="사진 URL">
-          <TextInput
-            style={styles.input}
-            placeholder="https://example.com/photo.jpg"
-            value={imageUrl}
-            onChangeText={onChangeImageUrl}
-            autoCapitalize="none"
-          />
+          <View style={styles.inlineSearchRow}>
+            <TextInput
+              style={[styles.input, styles.inlineSearchInput]}
+              placeholder="https://example.com/photo.jpg"
+              value={imageUrl}
+              onChangeText={onChangeImageUrl}
+              autoCapitalize="none"
+            />
+            <Pressable
+              style={({pressed}) => [
+                styles.inlineSearchButton,
+                pressed ? styles.pressed : null,
+                loading ? styles.disabled : null,
+              ]}
+              onPress={onPickImage}
+              disabled={loading}>
+              <Text style={styles.inlineSearchButtonText}>사진 선택</Text>
+            </Pressable>
+          </View>
         </Field>
         <Field label="내용">
           <TextInput

@@ -80,6 +80,7 @@ type MapHomeProps = {
   onCancelCommunityPost: () => void;
   onSearchCommunityPostPlaces: () => void;
   onSelectCommunityPostPlace: (restaurant: Restaurant) => void;
+  onPickCommunityPostImage: () => void;
   onCreateCommunityPost: () => void;
   onChangePostPlaceQuery: (value: string) => void;
   onChangePostTitle: (value: string) => void;
@@ -155,6 +156,7 @@ export function MapHome(props: MapHomeProps) {
           onCancelCommunityPost={props.onCancelCommunityPost}
           onSearchCommunityPostPlaces={props.onSearchCommunityPostPlaces}
           onSelectCommunityPostPlace={props.onSelectCommunityPostPlace}
+          onPickCommunityPostImage={props.onPickCommunityPostImage}
           onCreateCommunityPost={props.onCreateCommunityPost}
           onChangePostPlaceQuery={props.onChangePostPlaceQuery}
           onChangePostTitle={props.onChangePostTitle}

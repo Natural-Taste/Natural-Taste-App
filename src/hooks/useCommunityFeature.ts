@@ -1,5 +1,6 @@
 import {useState} from 'react';
-import {request, getErrorMessage} from '../api/client';
+import {launchImageLibrary} from 'react-native-image-picker';
+import {request, getErrorMessage, uploadImage} from '../api/client';
 import type {AuthResponse, CommunityComment, CommunityPost, Message, Restaurant} from '../types';
 import {getRestaurantKey, toSaveRestaurantBody} from '../utils/restaurants';
 
@@ -189,6 +190,58 @@ export function useCommunityFeature({
     setPostPlaceResults([]);
     setPostPlaceQuery(restaurant.name);
     setMessage({tone: 'success', text: '장소를 선택했습니다.'});
+  };
+
+  const pickCommunityPostImage = async () => {
+    if (!auth) {
+      return;
+    }
+
+    const response = await launchImageLibrary({
+      mediaType: 'photo',
+      selectionLimit: 1,
+      quality: 0.9,
+      includeBase64: false,
+    });
+
+    if (response.didCancel) {
+      return;
+    }
+
+    if (response.errorCode) {
+      setMessage({
+        tone: 'error',
+        text: response.errorMessage ?? '사진을 선택할 수 없습니다.',
+      });
+      return;
+    }
+
+    const asset = response.assets?.[0];
+    if (!asset?.uri) {
+      setMessage({tone: 'error', text: '선택한 사진을 읽을 수 없습니다.'});
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const uploaded = await uploadImage(
+        {
+          uri: asset.uri,
+          type: asset.type ?? 'image/jpeg',
+          fileName: asset.fileName ?? 'community-image.jpg',
+        },
+        auth,
+      );
+      setPostImageUrl(uploaded.imageUrl);
+      setMessage({tone: 'success', text: '사진을 업로드했습니다.'});
+    } catch (error) {
+      setMessage({
+        tone: 'error',
+        text: getErrorMessage(error, '사진 업로드에 실패했습니다.'),
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const createCommunityPost = async () => {
@@ -574,6 +627,7 @@ export function useCommunityFeature({
     cancelCommunityPost,
     searchCommunityPostPlaces,
     selectCommunityPostPlace,
+    pickCommunityPostImage,
     createCommunityPost,
     startEditCommunityPost,
     cancelEditCommunityPost,
