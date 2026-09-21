@@ -1,9 +1,10 @@
-import {useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {useCommunityFeature} from './useCommunityFeature';
 import {useFriendFeature} from './useFriendFeature';
 import {useRestaurantFeature} from './useRestaurantFeature';
 import {useColorScheme} from 'react-native';
-import {request, getErrorMessage} from '../api/client';
+import {request, getErrorMessage, setUnauthorizedHandler} from '../api/client';
+import {clearStoredAuth, loadStoredAuth, saveStoredAuth} from '../authStorage';
 import {emptyMessage} from '../constants';
 import type {
   ActivePanel,
@@ -26,6 +27,7 @@ export function useFoodMapApp() {
   const [activePanel, setActivePanel] = useState<ActivePanel>('map');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<Message>(emptyMessage);
+  const loadSavedRestaurantsRef = useRef<(authOverride?: AuthResponse) => Promise<void>>(async () => {});
 
   const {
     query,
@@ -42,6 +44,8 @@ export function useFoodMapApp() {
     loadSavedRestaurants,
     toggleSaved,
   } = useRestaurantFeature({auth, setLoading, setMessage});
+
+  loadSavedRestaurantsRef.current = loadSavedRestaurants;
 
   const {
     userSearchQuery,
@@ -108,6 +112,58 @@ export function useFoodMapApp() {
     setRestaurants,
     setSavedRestaurants,
   });
+
+  const clearSession = async (messageOverride?: Message) => {
+    await clearStoredAuth();
+    setAuth(null);
+    resetRestaurants();
+    setActivePanel('map');
+    resetCommunityState();
+    resetFriendState();
+    if (messageOverride) {
+      setMessage(messageOverride);
+    }
+  };
+
+  useEffect(() => {
+    let active = true;
+
+    const restoreAuth = async () => {
+      setLoading(true);
+      try {
+        const storedAuth = await loadStoredAuth();
+        if (!active || !storedAuth) {
+          return;
+        }
+
+        setAuth(storedAuth);
+        await loadSavedRestaurantsRef.current(storedAuth);
+      } catch {
+        await clearStoredAuth();
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    restoreAuth();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      clearSession({
+        tone: 'error',
+        text: '로그인이 만료되었습니다. 다시 로그인해 주세요.',
+      });
+    });
+
+    return () => setUnauthorizedHandler(null);
+  });
+
   const submitAuth = async () => {
     setLoading(true);
     setMessage({tone: 'info', text: '인증 요청을 보내는 중입니다.'});
@@ -125,6 +181,7 @@ export function useFoodMapApp() {
       );
 
       setAuth(data);
+      await saveStoredAuth(data);
       setPassword('');
       setCurrentPassword('');
       setNewPassword('');
@@ -155,12 +212,7 @@ export function useFoodMapApp() {
     } catch {
       // 서버 로그아웃 실패와 관계없이 앱 토큰은 지웁니다.
     } finally {
-      setAuth(null);
-      resetRestaurants();
-      setActivePanel('map');
-      resetCommunityState();
-      resetFriendState();
-      setMessage({tone: 'success', text: '로그아웃되었습니다.'});
+      await clearSession({tone: 'success', text: '로그아웃되었습니다.'});
       setLoading(false);
     }
   };
@@ -202,12 +254,7 @@ export function useFoodMapApp() {
         auth,
         body: {password: currentPassword},
       });
-      setAuth(null);
-      resetRestaurants();
-      setActivePanel('map');
-      resetCommunityState();
-      resetFriendState();
-      setMessage({tone: 'success', text: '회원탈퇴가 완료되었습니다.'});
+      await clearSession({tone: 'success', text: '회원탈퇴가 완료되었습니다.'});
     } catch (error) {
       setMessage({
         tone: 'error',

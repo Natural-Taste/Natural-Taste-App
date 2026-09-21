@@ -1,6 +1,18 @@
 import {API_BASE_URL} from '../constants';
 import type {AuthResponse} from '../types';
 
+let unauthorizedHandler: (() => void) | null = null;
+
+export class ApiError extends Error {
+  constructor(public status: number) {
+    super(`요청 실패 (${status})`);
+  }
+}
+
+export function setUnauthorizedHandler(handler: (() => void) | null) {
+  unauthorizedHandler = handler;
+}
+
 export async function request<T = void>(
   path: string,
   options: {
@@ -22,7 +34,10 @@ export async function request<T = void>(
   });
 
   if (!response.ok) {
-    throw new Error(`요청 실패 (${response.status})`);
+    if (response.status === 401 && options.auth) {
+      unauthorizedHandler?.();
+    }
+    throw new ApiError(response.status);
   }
 
   if (response.status === 204) {
