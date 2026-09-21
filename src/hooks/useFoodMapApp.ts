@@ -13,6 +13,7 @@ import type {
   AuthResponse,
   Message,
   Restaurant,
+  UserProfile,
 } from '../types';
 
 export function useFoodMapApp() {
@@ -24,11 +25,14 @@ export function useFoodMapApp() {
   const [name, setName] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [profileName, setProfileName] = useState('');
+  const [profileNameDraft, setProfileNameDraft] = useState('');
   const [auth, setAuth] = useState<AuthResponse | null>(null);
   const [activePanel, setActivePanel] = useState<ActivePanel>('map');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<Message>(emptyMessage);
   const loadSavedRestaurantsRef = useRef<(authOverride?: AuthResponse) => Promise<void>>(async () => {});
+  const loadMyProfileRef = useRef<(authOverride?: AuthResponse) => Promise<void>>(async () => {});
 
   const {
     query,
@@ -80,6 +84,7 @@ export function useFoodMapApp() {
     communityPosts,
     selectedCommunityPost,
     postWriting,
+    postEditing,
     postDraftRestaurant,
     postPlaceQuery,
     postPlaceResults,
@@ -88,6 +93,8 @@ export function useFoodMapApp() {
     postImageUrl,
     communityComments,
     commentContent,
+    editingCommentId,
+    editingCommentContent,
     setSelectedCommunityPost,
     setPostWriting,
     setPostDraftRestaurant,
@@ -96,6 +103,7 @@ export function useFoodMapApp() {
     setPostContent,
     setPostImageUrl,
     setCommentContent,
+    setEditingCommentContent,
     resetCommunityState,
     resetCommunitySelection,
     loadCommunityPosts,
@@ -105,9 +113,15 @@ export function useFoodMapApp() {
     searchCommunityPostPlaces,
     selectCommunityPostPlace,
     createCommunityPost,
+    startEditCommunityPost,
+    cancelEditCommunityPost,
+    updateCommunityPost,
     saveCommunityRestaurant,
     toggleCommunityRecommendation,
     createCommunityComment,
+    startEditCommunityComment,
+    cancelEditCommunityComment,
+    updateCommunityComment,
     deleteCommunityPost,
     deleteCommunityComment,
   } = useCommunityFeature({
@@ -122,6 +136,8 @@ export function useFoodMapApp() {
   const clearSession = async (messageOverride?: Message) => {
     await clearStoredAuth();
     setAuth(null);
+    setProfileName('');
+    setProfileNameDraft('');
     resetRestaurants();
     setActivePanel('map');
     resetCommunityState();
@@ -144,6 +160,7 @@ export function useFoodMapApp() {
 
         setAuth(storedAuth);
         await loadSavedRestaurantsRef.current(storedAuth);
+        await loadMyProfileRef.current(storedAuth);
       } catch {
         await clearStoredAuth();
       } finally {
@@ -188,6 +205,7 @@ export function useFoodMapApp() {
 
       setAuth(data);
       await saveStoredAuth(data);
+      await loadMyProfile(data);
       setPassword('');
       setCurrentPassword('');
       setNewPassword('');
@@ -242,6 +260,56 @@ export function useFoodMapApp() {
       setMessage({
         tone: 'error',
         text: getErrorMessage(error, '비밀번호 수정에 실패했습니다.'),
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadMyProfile = async (authOverride?: AuthResponse) => {
+    const activeAuth = authOverride ?? auth;
+    if (!activeAuth) {
+      return;
+    }
+
+    try {
+      const profile = await request<UserProfile>('/users/me', {auth: activeAuth});
+      setProfileName(profile.name);
+      setProfileNameDraft(profile.name);
+    } catch (error) {
+      setMessage({
+        tone: 'error',
+        text: getErrorMessage(error, '회원 정보 조회에 실패했습니다.'),
+      });
+    }
+  };
+
+  loadMyProfileRef.current = loadMyProfile;
+
+  const updateMyProfile = async () => {
+    if (!auth) {
+      return;
+    }
+
+    if (!profileNameDraft.trim()) {
+      setMessage({tone: 'error', text: '이름을 입력해 주세요.'});
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const profile = await request<UserProfile>('/users/me', {
+        method: 'PATCH',
+        auth,
+        body: {name: profileNameDraft.trim()},
+      });
+      setProfileName(profile.name);
+      setProfileNameDraft(profile.name);
+      setMessage({tone: 'success', text: '프로필 이름이 수정되었습니다.'});
+    } catch (error) {
+      setMessage({
+        tone: 'error',
+        text: getErrorMessage(error, '프로필 수정에 실패했습니다.'),
       });
     } finally {
       setLoading(false);
@@ -305,6 +373,7 @@ export function useFoodMapApp() {
     setSelectedFriend(null);
     setFriendRestaurants([]);
     setActivePanel('mypage');
+    loadMyProfile();
   };
 
   return {
@@ -334,6 +403,7 @@ export function useFoodMapApp() {
       selectedCommunityPost,
       postDraftRestaurant,
       postWriting,
+      postEditing,
       postPlaceQuery,
       postPlaceResults,
       postTitle,
@@ -341,6 +411,8 @@ export function useFoodMapApp() {
       postImageUrl,
       communityComments,
       commentContent,
+      editingCommentId,
+      editingCommentContent,
       userSearchQuery,
       searchedUsers,
       friendRequests,
@@ -353,6 +425,8 @@ export function useFoodMapApp() {
       userId: auth?.userId ?? 0,
       currentPassword,
       newPassword,
+      profileName,
+      profileNameDraft,
       onChangeQuery: setQuery,
       onSearch: searchRestaurants,
       onSelectRestaurant: selectRestaurant,
@@ -379,18 +453,27 @@ export function useFoodMapApp() {
       onSearchCommunityPostPlaces: searchCommunityPostPlaces,
       onSelectCommunityPostPlace: selectCommunityPostPlace,
       onCreateCommunityPost: createCommunityPost,
+      onStartEditCommunityPost: startEditCommunityPost,
+      onCancelEditCommunityPost: cancelEditCommunityPost,
+      onUpdateCommunityPost: updateCommunityPost,
       onChangePostPlaceQuery: setPostPlaceQuery,
       onChangePostTitle: setPostTitle,
       onChangePostContent: setPostContent,
       onChangePostImageUrl: setPostImageUrl,
       onCreateCommunityComment: createCommunityComment,
+      onStartEditCommunityComment: startEditCommunityComment,
+      onCancelEditCommunityComment: cancelEditCommunityComment,
+      onUpdateCommunityComment: updateCommunityComment,
       onDeleteCommunityComment: deleteCommunityComment,
       onChangeCommentContent: setCommentContent,
+      onChangeEditingCommentContent: setEditingCommentContent,
       onCloseDetail: () => setSelectedRestaurant(null),
       onOpenMyPage: openMyPage,
       onChangeCurrentPassword: setCurrentPassword,
       onChangeNewPassword: setNewPassword,
       onChangePassword: changePassword,
+      onChangeProfileName: setProfileNameDraft,
+      onUpdateProfile: updateMyProfile,
       onLogout: logout,
       onDeleteUser: deleteUser,
     },

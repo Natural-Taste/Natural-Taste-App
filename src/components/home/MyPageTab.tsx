@@ -11,9 +11,13 @@ type MyPageTabProps = {
   userId: number;
   currentPassword: string;
   newPassword: string;
+  profileName: string;
+  profileNameDraft: string;
   onChangeCurrentPassword: (value: string) => void;
   onChangeNewPassword: (value: string) => void;
   onChangePassword: () => void;
+  onChangeProfileName: (value: string) => void;
+  onUpdateProfile: () => void;
   onLogout: () => void;
   onDeleteUser: () => void;
 };
@@ -24,9 +28,13 @@ export function MyPageTab({
   userId,
   currentPassword,
   newPassword,
+  profileName,
+  profileNameDraft,
   onChangeCurrentPassword,
   onChangeNewPassword,
   onChangePassword,
+  onChangeProfileName,
+  onUpdateProfile,
   onLogout,
   onDeleteUser,
 }: MyPageTabProps) {
@@ -40,9 +48,13 @@ export function MyPageTab({
       />
       <MapAccountSheet
         userId={userId}
+        profileName={profileName}
+        profileNameDraft={profileNameDraft}
         currentPassword={currentPassword}
         newPassword={newPassword}
         loading={loading}
+        onChangeProfileName={onChangeProfileName}
+        onUpdateProfile={onUpdateProfile}
         onChangeCurrentPassword={onChangeCurrentPassword}
         onChangeNewPassword={onChangeNewPassword}
         onChangePassword={onChangePassword}

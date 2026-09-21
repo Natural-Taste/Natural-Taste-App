@@ -232,6 +232,9 @@ export const styles = StyleSheet.create({
     gap: 10,
     paddingBottom: 4,
   },
+  listFilterInput: {
+    marginBottom: 12,
+  },
   sheetRestaurant: {
     alignItems: 'center',
     backgroundColor: '#FCFBF7',
@@ -766,6 +769,7 @@ export const styles = StyleSheet.create({
   },
   postActionRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
     marginBottom: 16,
   },
@@ -820,6 +824,28 @@ export const styles = StyleSheet.create({
   },
   commentInput: {
     flex: 1,
+  },
+  editBox: {
+    backgroundColor: '#FCFBF7',
+    borderColor: '#E4E0D5',
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 14,
+    padding: 12,
+  },
+  editActionRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  editPrimaryButton: {
+    flex: 1,
+  },
+  commentEditBox: {
+    gap: 8,
+  },
+  commentEditInput: {
+    minHeight: 72,
+    textAlignVertical: 'top',
   },
   accountText: {
     color: '#505449',

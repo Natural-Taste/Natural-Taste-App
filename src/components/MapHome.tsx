@@ -28,6 +28,7 @@ type MapHomeProps = {
   selectedCommunityPost: CommunityPost | null;
   postDraftRestaurant: Restaurant | null;
   postWriting: boolean;
+  postEditing: boolean;
   postPlaceQuery: string;
   postPlaceResults: Restaurant[];
   postTitle: string;
@@ -35,6 +36,8 @@ type MapHomeProps = {
   postImageUrl: string;
   communityComments: CommunityComment[];
   commentContent: string;
+  editingCommentId: number | null;
+  editingCommentContent: string;
   userSearchQuery: string;
   searchedUsers: FriendUser[];
   friendRequests: FriendRequest[];
@@ -47,6 +50,8 @@ type MapHomeProps = {
   userId: number;
   currentPassword: string;
   newPassword: string;
+  profileName: string;
+  profileNameDraft: string;
   onChangeQuery: (value: string) => void;
   onSearch: () => void;
   onSelectRestaurant: (restaurant: Restaurant) => void;
@@ -68,6 +73,9 @@ type MapHomeProps = {
   onSaveCommunityRestaurant: (post: CommunityPost) => void;
   onToggleCommunityRecommendation: (post: CommunityPost) => void;
   onDeleteCommunityPost: (post: CommunityPost) => void;
+  onStartEditCommunityPost: (post: CommunityPost) => void;
+  onCancelEditCommunityPost: () => void;
+  onUpdateCommunityPost: () => void;
   onStartCommunityPost: () => void;
   onCancelCommunityPost: () => void;
   onSearchCommunityPostPlaces: () => void;
@@ -78,13 +86,19 @@ type MapHomeProps = {
   onChangePostContent: (value: string) => void;
   onChangePostImageUrl: (value: string) => void;
   onCreateCommunityComment: () => void;
+  onStartEditCommunityComment: (comment: CommunityComment) => void;
+  onCancelEditCommunityComment: () => void;
+  onUpdateCommunityComment: (comment: CommunityComment) => void;
   onDeleteCommunityComment: (comment: CommunityComment) => void;
   onChangeCommentContent: (value: string) => void;
+  onChangeEditingCommentContent: (value: string) => void;
   onCloseDetail: () => void;
   onOpenMyPage: () => void;
   onChangeCurrentPassword: (value: string) => void;
   onChangeNewPassword: (value: string) => void;
   onChangePassword: () => void;
+  onChangeProfileName: (value: string) => void;
+  onUpdateProfile: () => void;
   onLogout: () => void;
   onDeleteUser: () => void;
 };
@@ -118,6 +132,7 @@ export function MapHome(props: MapHomeProps) {
           selectedCommunityPost={props.selectedCommunityPost}
           postDraftRestaurant={props.postDraftRestaurant}
           postWriting={props.postWriting}
+          postEditing={props.postEditing}
           postPlaceQuery={props.postPlaceQuery}
           postPlaceResults={props.postPlaceResults}
           postTitle={props.postTitle}
@@ -125,12 +140,17 @@ export function MapHome(props: MapHomeProps) {
           postImageUrl={props.postImageUrl}
           communityComments={props.communityComments}
           commentContent={props.commentContent}
+          editingCommentId={props.editingCommentId}
+          editingCommentContent={props.editingCommentContent}
           savedRestaurants={props.savedRestaurants}
           userId={props.userId}
           onSelectCommunityPost={props.onSelectCommunityPost}
           onSaveCommunityRestaurant={props.onSaveCommunityRestaurant}
           onToggleCommunityRecommendation={props.onToggleCommunityRecommendation}
           onDeleteCommunityPost={props.onDeleteCommunityPost}
+          onStartEditCommunityPost={props.onStartEditCommunityPost}
+          onCancelEditCommunityPost={props.onCancelEditCommunityPost}
+          onUpdateCommunityPost={props.onUpdateCommunityPost}
           onStartCommunityPost={props.onStartCommunityPost}
           onCancelCommunityPost={props.onCancelCommunityPost}
           onSearchCommunityPostPlaces={props.onSearchCommunityPostPlaces}
@@ -141,8 +161,12 @@ export function MapHome(props: MapHomeProps) {
           onChangePostContent={props.onChangePostContent}
           onChangePostImageUrl={props.onChangePostImageUrl}
           onCreateCommunityComment={props.onCreateCommunityComment}
+          onStartEditCommunityComment={props.onStartEditCommunityComment}
+          onCancelEditCommunityComment={props.onCancelEditCommunityComment}
+          onUpdateCommunityComment={props.onUpdateCommunityComment}
           onDeleteCommunityComment={props.onDeleteCommunityComment}
           onChangeCommentContent={props.onChangeCommentContent}
+          onChangeEditingCommentContent={props.onChangeEditingCommentContent}
         />
       ) : props.activePanel === 'search' ? (
         <SearchTab
@@ -173,9 +197,13 @@ export function MapHome(props: MapHomeProps) {
           userId={props.userId}
           currentPassword={props.currentPassword}
           newPassword={props.newPassword}
+          profileName={props.profileName}
+          profileNameDraft={props.profileNameDraft}
           onChangeCurrentPassword={props.onChangeCurrentPassword}
           onChangeNewPassword={props.onChangeNewPassword}
           onChangePassword={props.onChangePassword}
+          onChangeProfileName={props.onChangeProfileName}
+          onUpdateProfile={props.onUpdateProfile}
           onLogout={props.onLogout}
           onDeleteUser={props.onDeleteUser}
         />

@@ -5,9 +5,13 @@ import {Field, PrimaryButton} from './Common';
 
 export function MapAccountSheet({
   userId,
+  profileName,
+  profileNameDraft,
   currentPassword,
   newPassword,
   loading,
+  onChangeProfileName,
+  onUpdateProfile,
   onChangeCurrentPassword,
   onChangeNewPassword,
   onChangePassword,
@@ -17,9 +21,13 @@ export function MapAccountSheet({
   showHandle = true,
 }: {
   userId: number;
+  profileName: string;
+  profileNameDraft: string;
   currentPassword: string;
   newPassword: string;
   loading: boolean;
+  onChangeProfileName: (value: string) => void;
+  onUpdateProfile: () => void;
   onChangeCurrentPassword: (value: string) => void;
   onChangeNewPassword: (value: string) => void;
   onChangePassword: () => void;
@@ -34,7 +42,9 @@ export function MapAccountSheet({
       <View style={styles.detailTopRow}>
         <View style={styles.restaurantTextGroup}>
           <Text style={styles.sheetTitle}>회원 정보</Text>
-          <Text style={styles.restaurantMeta}>회원 번호 {userId}</Text>
+          <Text style={styles.restaurantMeta}>
+            {profileName || '이름 미설정'} · 회원 번호 {userId}
+          </Text>
         </View>
         {onClose ? (
           <Pressable
@@ -47,6 +57,26 @@ export function MapAccountSheet({
           </Pressable>
         ) : null}
       </View>
+      <Field label="이름">
+        <View style={styles.inlineSearchRow}>
+          <TextInput
+            style={[styles.input, styles.inlineSearchInput]}
+            placeholder="표시 이름"
+            value={profileNameDraft}
+            onChangeText={onChangeProfileName}
+          />
+          <Pressable
+            style={({pressed}) => [
+              styles.inlineSearchButton,
+              pressed ? styles.pressed : null,
+              loading ? styles.disabled : null,
+            ]}
+            onPress={onUpdateProfile}
+            disabled={loading}>
+            <Text style={styles.inlineSearchButtonText}>저장</Text>
+          </Pressable>
+        </View>
+      </Field>
       <Field label="현재 비밀번호">
         <TextInput
           style={styles.input}

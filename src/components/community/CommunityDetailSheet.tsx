@@ -4,11 +4,18 @@ import {styles} from '../../styles';
 import type {CommunityComment, CommunityPost, Restaurant} from '../../types';
 import {formatDate} from '../../utils/date';
 import {findSavedRestaurant} from '../../utils/restaurants';
+import {Field} from '../Common';
 
 type CommunityDetailSheetProps = {
   selectedPost: CommunityPost;
   comments: CommunityComment[];
   commentContent: string;
+  editing: boolean;
+  editTitle: string;
+  editContent: string;
+  editImageUrl: string;
+  editingCommentId: number | null;
+  editingCommentContent: string;
   savedRestaurants: Restaurant[];
   userId: number;
   loading: boolean;
@@ -16,9 +23,19 @@ type CommunityDetailSheetProps = {
   onSaveRestaurant: (post: CommunityPost) => void;
   onToggleRecommendation: (post: CommunityPost) => void;
   onDeletePost: (post: CommunityPost) => void;
+  onStartEditPost: (post: CommunityPost) => void;
+  onCancelEditPost: () => void;
+  onUpdatePost: () => void;
+  onChangeEditTitle: (value: string) => void;
+  onChangeEditContent: (value: string) => void;
+  onChangeEditImageUrl: (value: string) => void;
   onCreateComment: () => void;
+  onStartEditComment: (comment: CommunityComment) => void;
+  onCancelEditComment: () => void;
+  onUpdateComment: (comment: CommunityComment) => void;
   onDeleteComment: (comment: CommunityComment) => void;
   onChangeCommentContent: (value: string) => void;
+  onChangeEditingCommentContent: (value: string) => void;
   onClose: () => void;
 };
 
@@ -26,6 +43,12 @@ export function CommunityDetailSheet({
   selectedPost,
   comments,
   commentContent,
+  editing,
+  editTitle,
+  editContent,
+  editImageUrl,
+  editingCommentId,
+  editingCommentContent,
   savedRestaurants,
   userId,
   loading,
@@ -33,13 +56,23 @@ export function CommunityDetailSheet({
   onSaveRestaurant,
   onToggleRecommendation,
   onDeletePost,
+  onStartEditPost,
+  onCancelEditPost,
+  onUpdatePost,
+  onChangeEditTitle,
+  onChangeEditContent,
+  onChangeEditImageUrl,
   onCreateComment,
+  onStartEditComment,
+  onCancelEditComment,
+  onUpdateComment,
   onDeleteComment,
   onChangeCommentContent,
+  onChangeEditingCommentContent,
   onClose,
 }: CommunityDetailSheetProps) {
   const saved = Boolean(findSavedRestaurant(selectedPost.restaurant, savedRestaurants));
-  const canDeletePost = selectedPost.authorId === userId;
+  const canManagePost = selectedPost.authorId === userId;
 
   return (
     <ScrollView
@@ -64,14 +97,70 @@ export function CommunityDetailSheet({
             <Text style={styles.closeButtonText}>목록</Text>
           </Pressable>
         </View>
-        {selectedPost.imageUrl ? (
-          <Image
-            source={{uri: selectedPost.imageUrl}}
-            style={styles.postImage}
-            resizeMode="cover"
-          />
-        ) : null}
-        <Text style={styles.postContent}>{selectedPost.content}</Text>
+        {editing ? (
+          <View style={styles.editBox}>
+            <Field label="제목">
+              <TextInput
+                style={styles.input}
+                placeholder="게시글 제목"
+                value={editTitle}
+                onChangeText={onChangeEditTitle}
+              />
+            </Field>
+            <Field label="사진 URL">
+              <TextInput
+                style={styles.input}
+                placeholder="https://example.com/photo.jpg"
+                value={editImageUrl}
+                onChangeText={onChangeEditImageUrl}
+                autoCapitalize="none"
+              />
+            </Field>
+            <Field label="내용">
+              <TextInput
+                style={[styles.input, styles.contentInput]}
+                placeholder="맛집을 추천하는 이유"
+                value={editContent}
+                onChangeText={onChangeEditContent}
+                multiline
+              />
+            </Field>
+            <View style={styles.editActionRow}>
+              <Pressable
+                style={({pressed}) => [
+                  styles.secondaryAction,
+                  pressed ? styles.pressed : null,
+                  loading ? styles.disabled : null,
+                ]}
+                onPress={onCancelEditPost}
+                disabled={loading}>
+                <Text style={styles.secondaryActionText}>취소</Text>
+              </Pressable>
+              <Pressable
+                style={({pressed}) => [
+                  styles.primaryButton,
+                  styles.editPrimaryButton,
+                  pressed ? styles.pressed : null,
+                  loading ? styles.disabled : null,
+                ]}
+                onPress={onUpdatePost}
+                disabled={loading}>
+                <Text style={styles.primaryButtonText}>수정 저장</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : (
+          <>
+            {selectedPost.imageUrl ? (
+              <Image
+                source={{uri: selectedPost.imageUrl}}
+                style={styles.postImage}
+                resizeMode="cover"
+              />
+            ) : null}
+            <Text style={styles.postContent}>{selectedPost.content}</Text>
+          </>
+        )}
         <View style={styles.postRestaurantBox}>
           <Text style={styles.restaurantName}>{selectedPost.restaurant.name}</Text>
           <Text style={styles.restaurantMeta}>
@@ -82,7 +171,19 @@ export function CommunityDetailSheet({
           </Text>
         </View>
         <View style={styles.postActionRow}>
-          {canDeletePost ? (
+          {canManagePost && !editing ? (
+            <Pressable
+              style={({pressed}) => [
+                styles.recommendButton,
+                pressed ? styles.pressed : null,
+                loading ? styles.disabled : null,
+              ]}
+              onPress={() => onStartEditPost(selectedPost)}
+              disabled={loading}>
+              <Text style={styles.recommendButtonText}>게시글 수정</Text>
+            </Pressable>
+          ) : null}
+          {canManagePost ? (
             <Pressable
               style={({pressed}) => [
                 styles.recommendButton,
@@ -150,6 +251,18 @@ export function CommunityDetailSheet({
                       <Pressable
                         style={({pressed}) => [
                           styles.smallActionButton,
+                          pressed ? styles.pressed : null,
+                          loading ? styles.disabled : null,
+                        ]}
+                        onPress={() => onStartEditComment(comment)}
+                        disabled={loading}>
+                        <Text style={styles.smallActionButtonText}>수정</Text>
+                      </Pressable>
+                    ) : null}
+                    {comment.authorId === userId ? (
+                      <Pressable
+                        style={({pressed}) => [
+                          styles.smallActionButton,
                           styles.smallActionDangerButton,
                           pressed ? styles.pressed : null,
                           loading ? styles.disabled : null,
@@ -166,7 +279,42 @@ export function CommunityDetailSheet({
                       </Pressable>
                     ) : null}
                   </View>
-                  <Text style={styles.commentContent}>{comment.content}</Text>
+                  {editingCommentId === comment.id ? (
+                    <View style={styles.commentEditBox}>
+                      <TextInput
+                        style={[styles.input, styles.commentEditInput]}
+                        placeholder="댓글 내용"
+                        value={editingCommentContent}
+                        onChangeText={onChangeEditingCommentContent}
+                        multiline
+                      />
+                      <View style={styles.editActionRow}>
+                        <Pressable
+                          style={({pressed}) => [
+                            styles.secondaryAction,
+                            pressed ? styles.pressed : null,
+                            loading ? styles.disabled : null,
+                          ]}
+                          onPress={onCancelEditComment}
+                          disabled={loading}>
+                          <Text style={styles.secondaryActionText}>취소</Text>
+                        </Pressable>
+                        <Pressable
+                          style={({pressed}) => [
+                            styles.primaryButton,
+                            styles.editPrimaryButton,
+                            pressed ? styles.pressed : null,
+                            loading ? styles.disabled : null,
+                          ]}
+                          onPress={() => onUpdateComment(comment)}
+                          disabled={loading}>
+                          <Text style={styles.primaryButtonText}>저장</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  ) : (
+                    <Text style={styles.commentContent}>{comment.content}</Text>
+                  )}
                 </View>
               ))}
             </View>

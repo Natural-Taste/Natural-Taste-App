@@ -7,6 +7,12 @@ export type AuthResponse = {
   tokenType: string;
 };
 
+export type UserProfile = {
+  id: number;
+  email: string;
+  name: string;
+};
+
 export type Restaurant = {
   id: number | null;
   provider?: string;
@@ -42,6 +48,7 @@ export type CommunityComment = {
   authorId: number;
   content: string;
   createdAt: string;
+  updatedAt?: string;
 };
 
 export type FriendUser = {

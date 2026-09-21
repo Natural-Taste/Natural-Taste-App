@@ -12,6 +12,7 @@ type CommunityTabProps = {
   selectedCommunityPost: CommunityPost | null;
   postDraftRestaurant: Restaurant | null;
   postWriting: boolean;
+  postEditing: boolean;
   postPlaceQuery: string;
   postPlaceResults: Restaurant[];
   postTitle: string;
@@ -19,12 +20,17 @@ type CommunityTabProps = {
   postImageUrl: string;
   communityComments: CommunityComment[];
   commentContent: string;
+  editingCommentId: number | null;
+  editingCommentContent: string;
   savedRestaurants: Restaurant[];
   userId: number;
   onSelectCommunityPost: (post: CommunityPost | null) => void;
   onSaveCommunityRestaurant: (post: CommunityPost) => void;
   onToggleCommunityRecommendation: (post: CommunityPost) => void;
   onDeleteCommunityPost: (post: CommunityPost) => void;
+  onStartEditCommunityPost: (post: CommunityPost) => void;
+  onCancelEditCommunityPost: () => void;
+  onUpdateCommunityPost: () => void;
   onStartCommunityPost: () => void;
   onCancelCommunityPost: () => void;
   onSearchCommunityPostPlaces: () => void;
@@ -35,8 +41,12 @@ type CommunityTabProps = {
   onChangePostContent: (value: string) => void;
   onChangePostImageUrl: (value: string) => void;
   onCreateCommunityComment: () => void;
+  onStartEditCommunityComment: (comment: CommunityComment) => void;
+  onCancelEditCommunityComment: () => void;
+  onUpdateCommunityComment: (comment: CommunityComment) => void;
   onDeleteCommunityComment: (comment: CommunityComment) => void;
   onChangeCommentContent: (value: string) => void;
+  onChangeEditingCommentContent: (value: string) => void;
 };
 
 export function CommunityTab({
@@ -46,6 +56,7 @@ export function CommunityTab({
   selectedCommunityPost,
   postDraftRestaurant,
   postWriting,
+  postEditing,
   postPlaceQuery,
   postPlaceResults,
   postTitle,
@@ -53,12 +64,17 @@ export function CommunityTab({
   postImageUrl,
   communityComments,
   commentContent,
+  editingCommentId,
+  editingCommentContent,
   savedRestaurants,
   userId,
   onSelectCommunityPost,
   onSaveCommunityRestaurant,
   onToggleCommunityRecommendation,
   onDeleteCommunityPost,
+  onStartEditCommunityPost,
+  onCancelEditCommunityPost,
+  onUpdateCommunityPost,
   onStartCommunityPost,
   onCancelCommunityPost,
   onSearchCommunityPostPlaces,
@@ -69,8 +85,12 @@ export function CommunityTab({
   onChangePostContent,
   onChangePostImageUrl,
   onCreateCommunityComment,
+  onStartEditCommunityComment,
+  onCancelEditCommunityComment,
+  onUpdateCommunityComment,
   onDeleteCommunityComment,
   onChangeCommentContent,
+  onChangeEditingCommentContent,
 }: CommunityTabProps) {
   return (
     <View style={styles.tabScreen}>
@@ -85,6 +105,7 @@ export function CommunityTab({
         selectedPost={selectedCommunityPost}
         draftRestaurant={postDraftRestaurant}
         writing={postWriting}
+        editing={postEditing}
         placeQuery={postPlaceQuery}
         placeResults={postPlaceResults}
         title={postTitle}
@@ -92,6 +113,8 @@ export function CommunityTab({
         imageUrl={postImageUrl}
         comments={communityComments}
         commentContent={commentContent}
+        editingCommentId={editingCommentId}
+        editingCommentContent={editingCommentContent}
         savedRestaurants={savedRestaurants}
         userId={userId}
         loading={loading}
@@ -99,6 +122,9 @@ export function CommunityTab({
         onSaveRestaurant={onSaveCommunityRestaurant}
         onToggleRecommendation={onToggleCommunityRecommendation}
         onDeletePost={onDeleteCommunityPost}
+        onStartEditPost={onStartEditCommunityPost}
+        onCancelEditPost={onCancelEditCommunityPost}
+        onUpdatePost={onUpdateCommunityPost}
         onStartPost={onStartCommunityPost}
         onCancelPost={onCancelCommunityPost}
         onSearchPlaces={onSearchCommunityPostPlaces}
@@ -109,8 +135,12 @@ export function CommunityTab({
         onChangeContent={onChangePostContent}
         onChangeImageUrl={onChangePostImageUrl}
         onCreateComment={onCreateCommunityComment}
+        onStartEditComment={onStartEditCommunityComment}
+        onCancelEditComment={onCancelEditCommunityComment}
+        onUpdateComment={onUpdateCommunityComment}
         onDeleteComment={onDeleteCommunityComment}
         onChangeCommentContent={onChangeCommentContent}
+        onChangeEditingCommentContent={onChangeEditingCommentContent}
         onClose={() => onSelectCommunityPost(null)}
         showHandle={false}
       />

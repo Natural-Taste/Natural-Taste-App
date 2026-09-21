@@ -9,6 +9,7 @@ type CommunitySheetProps = {
   selectedPost: CommunityPost | null;
   draftRestaurant: Restaurant | null;
   writing: boolean;
+  editing: boolean;
   placeQuery: string;
   placeResults: Restaurant[];
   title: string;
@@ -16,6 +17,8 @@ type CommunitySheetProps = {
   imageUrl: string;
   comments: CommunityComment[];
   commentContent: string;
+  editingCommentId: number | null;
+  editingCommentContent: string;
   savedRestaurants: Restaurant[];
   userId: number;
   loading: boolean;
@@ -23,6 +26,9 @@ type CommunitySheetProps = {
   onSaveRestaurant: (post: CommunityPost) => void;
   onToggleRecommendation: (post: CommunityPost) => void;
   onDeletePost: (post: CommunityPost) => void;
+  onStartEditPost: (post: CommunityPost) => void;
+  onCancelEditPost: () => void;
+  onUpdatePost: () => void;
   onStartPost: () => void;
   onCancelPost: () => void;
   onSearchPlaces: () => void;
@@ -33,8 +39,12 @@ type CommunitySheetProps = {
   onChangeContent: (value: string) => void;
   onChangeImageUrl: (value: string) => void;
   onCreateComment: () => void;
+  onStartEditComment: (comment: CommunityComment) => void;
+  onCancelEditComment: () => void;
+  onUpdateComment: (comment: CommunityComment) => void;
   onDeleteComment: (comment: CommunityComment) => void;
   onChangeCommentContent: (value: string) => void;
+  onChangeEditingCommentContent: (value: string) => void;
   onClose: () => void;
   showHandle?: boolean;
 };
@@ -44,6 +54,7 @@ export function CommunitySheet({
   selectedPost,
   draftRestaurant,
   writing,
+  editing,
   placeQuery,
   placeResults,
   title,
@@ -51,6 +62,8 @@ export function CommunitySheet({
   imageUrl,
   comments,
   commentContent,
+  editingCommentId,
+  editingCommentContent,
   savedRestaurants,
   userId,
   loading,
@@ -58,6 +71,9 @@ export function CommunitySheet({
   onSaveRestaurant,
   onToggleRecommendation,
   onDeletePost,
+  onStartEditPost,
+  onCancelEditPost,
+  onUpdatePost,
   onStartPost,
   onCancelPost,
   onSearchPlaces,
@@ -68,8 +84,12 @@ export function CommunitySheet({
   onChangeContent,
   onChangeImageUrl,
   onCreateComment,
+  onStartEditComment,
+  onCancelEditComment,
+  onUpdateComment,
   onDeleteComment,
   onChangeCommentContent,
+  onChangeEditingCommentContent,
   onClose,
   showHandle = true,
 }: CommunitySheetProps) {
@@ -103,6 +123,12 @@ export function CommunitySheet({
         selectedPost={selectedPost}
         comments={comments}
         commentContent={commentContent}
+        editing={editing}
+        editTitle={title}
+        editContent={content}
+        editImageUrl={imageUrl}
+        editingCommentId={editingCommentId}
+        editingCommentContent={editingCommentContent}
         savedRestaurants={savedRestaurants}
         userId={userId}
         loading={loading}
@@ -110,9 +136,19 @@ export function CommunitySheet({
         onSaveRestaurant={onSaveRestaurant}
         onToggleRecommendation={onToggleRecommendation}
         onDeletePost={onDeletePost}
+        onStartEditPost={onStartEditPost}
+        onCancelEditPost={onCancelEditPost}
+        onUpdatePost={onUpdatePost}
+        onChangeEditTitle={onChangeTitle}
+        onChangeEditContent={onChangeContent}
+        onChangeEditImageUrl={onChangeImageUrl}
         onCreateComment={onCreateComment}
+        onStartEditComment={onStartEditComment}
+        onCancelEditComment={onCancelEditComment}
+        onUpdateComment={onUpdateComment}
         onDeleteComment={onDeleteComment}
         onChangeCommentContent={onChangeCommentContent}
+        onChangeEditingCommentContent={onChangeEditingCommentContent}
         onClose={onClose}
       />
     );

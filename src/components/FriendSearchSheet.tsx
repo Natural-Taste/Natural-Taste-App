@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useMemo, useState} from 'react';
 import {Pressable, ScrollView, Text, TextInput, View} from 'react-native';
 import {styles} from '../styles';
 import type {FriendRequest, FriendUser, Restaurant} from '../types';
@@ -45,11 +45,44 @@ export function FriendSearchSheet({
   onSelectFriend: (friend: FriendUser | null) => void;
   onToggleSaved: (restaurant: Restaurant) => void;
 }) {
+  const [friendFilterQuery, setFriendFilterQuery] = useState('');
+  const [friendRestaurantFilterQuery, setFriendRestaurantFilterQuery] = useState('');
   const savedIdSet = new Set(
     savedRestaurants
       .map(restaurant => restaurant.id)
       .filter((id): id is number => id !== null),
   );
+  const filteredFriends = useMemo(() => {
+    const normalizedQuery = friendFilterQuery.trim().toLowerCase();
+    if (!normalizedQuery) {
+      return friends;
+    }
+
+    return friends.filter(friend =>
+      [friend.name, friend.email]
+        .join(' ')
+        .toLowerCase()
+        .includes(normalizedQuery),
+    );
+  }, [friendFilterQuery, friends]);
+  const filteredFriendRestaurants = useMemo(() => {
+    const normalizedQuery = friendRestaurantFilterQuery.trim().toLowerCase();
+    if (!normalizedQuery) {
+      return friendRestaurants;
+    }
+
+    return friendRestaurants.filter(restaurant =>
+      [
+        restaurant.name,
+        restaurant.address,
+        restaurant.category ?? '',
+        restaurant.memo ?? '',
+      ]
+        .join(' ')
+        .toLowerCase()
+        .includes(normalizedQuery),
+    );
+  }, [friendRestaurantFilterQuery, friendRestaurants]);
 
   return (
     <ScrollView
@@ -153,8 +186,21 @@ export function FriendSearchSheet({
         ))}
       </FriendSection>
 
-      <FriendSection title="내 친구" emptyText="아직 친구가 없습니다.">
-        {friends.map(friend => (
+      <FriendSection
+        title="내 친구"
+        emptyText={
+          friends.length > 0 ? '검색 결과가 없습니다.' : '아직 친구가 없습니다.'
+        }>
+        {friends.length > 0 ? (
+          <TextInput
+            style={[styles.input, styles.listFilterInput]}
+            placeholder="친구 목록 검색"
+            value={friendFilterQuery}
+            onChangeText={setFriendFilterQuery}
+            autoCapitalize="none"
+          />
+        ) : null}
+        {filteredFriends.map(friend => (
           <View key={friend.id} style={styles.friendRow}>
             <View style={styles.restaurantTextGroup}>
               <Text style={styles.restaurantName}>{friend.name}</Text>
@@ -202,6 +248,9 @@ export function FriendSearchSheet({
             </View>
           </View>
         ))}
+        {friends.length > 0 && filteredFriends.length === 0 ? (
+          <Text style={styles.savedPlaceEmpty}>검색 결과가 없습니다.</Text>
+        ) : null}
       </FriendSection>
 
       {selectedFriend ? (
@@ -209,9 +258,12 @@ export function FriendSearchSheet({
           <View style={styles.detailTopRow}>
             <View style={styles.restaurantTextGroup}>
               <Text style={styles.savedPlaceTitle}>
-                {selectedFriend.name}님의 맛집 리스트
+                {selectedFriend.name}님의 프로필
               </Text>
               <Text style={styles.restaurantAddress}>{selectedFriend.email}</Text>
+              <Text style={styles.restaurantMeta}>
+                친구 · 저장 맛집 {friendRestaurants.length}곳
+              </Text>
             </View>
             <View style={styles.friendActionRow}>
               <Pressable
@@ -243,7 +295,14 @@ export function FriendSearchSheet({
           </View>
           {friendRestaurants.length > 0 ? (
             <View style={styles.listStack}>
-              {friendRestaurants.map(restaurant => {
+              <TextInput
+                style={[styles.input, styles.listFilterInput]}
+                placeholder="친구 맛집 검색"
+                value={friendRestaurantFilterQuery}
+                onChangeText={setFriendRestaurantFilterQuery}
+              />
+              {filteredFriendRestaurants.length > 0 ? (
+                filteredFriendRestaurants.map(restaurant => {
                 const saved =
                   restaurant.saved ||
                   (restaurant.id !== null && savedIdSet.has(restaurant.id)) ||
@@ -281,7 +340,10 @@ export function FriendSearchSheet({
                     </Pressable>
                   </View>
                 );
-              })}
+                })
+              ) : (
+                <Text style={styles.savedPlaceEmpty}>검색 결과가 없습니다.</Text>
+              )}
             </View>
           ) : (
             <Text style={styles.savedPlaceEmpty}>저장한 맛집이 없습니다.</Text>

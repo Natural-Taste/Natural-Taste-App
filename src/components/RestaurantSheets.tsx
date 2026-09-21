@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useMemo, useState} from 'react';
 import {Pressable, ScrollView, Text, TextInput, View} from 'react-native';
 import {styles} from '../styles';
 import type {Restaurant} from '../types';
@@ -22,21 +22,49 @@ export function MapRestaurantSheet({
   onSelectRestaurant: (restaurant: Restaurant) => void;
   onToggleSaved: (restaurant: Restaurant) => void;
 }) {
+  const [filterQuery, setFilterQuery] = useState('');
+  const filteredRestaurants = useMemo(() => {
+    const normalizedQuery = filterQuery.trim().toLowerCase();
+    if (!normalizedQuery) {
+      return restaurants;
+    }
+
+    return restaurants.filter(restaurant =>
+      [
+        restaurant.name,
+        restaurant.address,
+        restaurant.category ?? '',
+        restaurant.memo ?? '',
+      ]
+        .join(' ')
+        .toLowerCase()
+        .includes(normalizedQuery),
+    );
+  }, [filterQuery, restaurants]);
+
   return (
     <View>
       <View style={styles.sheetHandle} />
       <View style={styles.sheetHeader}>
         <Text style={styles.sheetTitle}>{title}</Text>
-        <Text style={styles.sheetCount}>{restaurants.length}곳</Text>
+        <Text style={styles.sheetCount}>{filteredRestaurants.length}곳</Text>
       </View>
+      <TextInput
+        style={[styles.input, styles.listFilterInput]}
+        placeholder="목록에서 검색"
+        value={filterQuery}
+        onChangeText={setFilterQuery}
+      />
       {restaurants.length === 0 ? (
         <Text style={styles.sheetEmptyText}>{emptyText}</Text>
+      ) : filteredRestaurants.length === 0 ? (
+        <Text style={styles.sheetEmptyText}>검색 결과가 없습니다.</Text>
       ) : (
         <ScrollView
           style={styles.sheetScroll}
           contentContainerStyle={styles.sheetList}
           showsVerticalScrollIndicator={false}>
-          {restaurants.map(restaurant => {
+          {filteredRestaurants.map(restaurant => {
             const saved =
               restaurant.saved ||
               (restaurant.id !== null && savedIdSet.has(restaurant.id));

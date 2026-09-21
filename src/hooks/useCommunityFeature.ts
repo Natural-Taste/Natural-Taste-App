@@ -31,27 +31,38 @@ export function useCommunityFeature({
   const [postImageUrl, setPostImageUrl] = useState('');
   const [communityComments, setCommunityComments] = useState<CommunityComment[]>([]);
   const [commentContent, setCommentContent] = useState('');
+  const [postEditing, setPostEditing] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
+  const [editingCommentContent, setEditingCommentContent] = useState('');
 
   const resetCommunityState = () => {
     setCommunityPosts([]);
     setSelectedCommunityPost(null);
     setPostWriting(false);
+    setPostEditing(false);
     setPostDraftRestaurant(null);
     setPostPlaceQuery('');
     setPostPlaceResults([]);
+    setPostTitle('');
+    setPostContent('');
     setPostImageUrl('');
     setCommunityComments([]);
     setCommentContent('');
+    setEditingCommentId(null);
+    setEditingCommentContent('');
   };
 
   const resetCommunitySelection = () => {
     setSelectedCommunityPost(null);
     setPostWriting(false);
+    setPostEditing(false);
     setPostDraftRestaurant(null);
     setPostPlaceQuery('');
     setPostPlaceResults([]);
     setCommunityComments([]);
     setCommentContent('');
+    setEditingCommentId(null);
+    setEditingCommentContent('');
   };
 
   const loadCommunityPosts = async () => {
@@ -102,8 +113,11 @@ export function useCommunityFeature({
   const selectCommunityPost = async (post: CommunityPost | null) => {
     setSelectedCommunityPost(post);
     setPostWriting(false);
+    setPostEditing(false);
     setPostDraftRestaurant(null);
     setCommentContent('');
+    setEditingCommentId(null);
+    setEditingCommentContent('');
 
     if (post) {
       await loadCommunityComments(post.id);
@@ -116,6 +130,7 @@ export function useCommunityFeature({
   const startCommunityPost = () => {
     setSelectedCommunityPost(null);
     setPostWriting(true);
+    setPostEditing(false);
     setPostDraftRestaurant(null);
     setPostPlaceQuery('');
     setPostPlaceResults([]);
@@ -128,6 +143,7 @@ export function useCommunityFeature({
 
   const cancelCommunityPost = () => {
     setPostWriting(false);
+    setPostEditing(false);
     setPostDraftRestaurant(null);
     setPostPlaceQuery('');
     setPostPlaceResults([]);
@@ -204,6 +220,7 @@ export function useCommunityFeature({
       ]);
       setSelectedCommunityPost(created);
       setPostWriting(false);
+      setPostEditing(false);
       setPostDraftRestaurant(null);
       setPostPlaceQuery('');
       setPostPlaceResults([]);
@@ -218,6 +235,63 @@ export function useCommunityFeature({
       setMessage({
         tone: 'error',
         text: getErrorMessage(error, '게시글 작성에 실패했습니다.'),
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const startEditCommunityPost = (post: CommunityPost) => {
+    setPostEditing(true);
+    setPostTitle(post.title);
+    setPostContent(post.content);
+    setPostImageUrl(post.imageUrl ?? '');
+  };
+
+  const cancelEditCommunityPost = () => {
+    setPostEditing(false);
+    setPostTitle('');
+    setPostContent('');
+    setPostImageUrl('');
+  };
+
+  const updateCommunityPost = async () => {
+    if (!auth || !selectedCommunityPost) {
+      return;
+    }
+
+    if (!postTitle.trim() || !postContent.trim()) {
+      setMessage({tone: 'error', text: '제목과 내용을 입력해 주세요.'});
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const updated = await request<CommunityPost>(
+        `/community/posts/${selectedCommunityPost.id}`,
+        {
+          method: 'PATCH',
+          auth,
+          body: {
+            title: postTitle.trim(),
+            content: postContent.trim(),
+            imageUrl: postImageUrl.trim() || null,
+          },
+        },
+      );
+      setCommunityPosts(current =>
+        current.map(post => (post.id === updated.id ? updated : post)),
+      );
+      setSelectedCommunityPost(updated);
+      setPostEditing(false);
+      setPostTitle('');
+      setPostContent('');
+      setPostImageUrl('');
+      setMessage({tone: 'success', text: '게시글을 수정했습니다.'});
+    } catch (error) {
+      setMessage({
+        tone: 'error',
+        text: getErrorMessage(error, '게시글 수정에 실패했습니다.'),
       });
     } finally {
       setLoading(false);
@@ -364,11 +438,60 @@ export function useCommunityFeature({
       setSelectedCommunityPost(null);
       setCommunityComments([]);
       setCommentContent('');
+      setPostEditing(false);
+      setEditingCommentId(null);
+      setEditingCommentContent('');
       setMessage({tone: 'success', text: '게시글을 삭제했습니다.'});
     } catch (error) {
       setMessage({
         tone: 'error',
         text: getErrorMessage(error, '게시글 삭제에 실패했습니다.'),
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const startEditCommunityComment = (comment: CommunityComment) => {
+    setEditingCommentId(comment.id);
+    setEditingCommentContent(comment.content);
+  };
+
+  const cancelEditCommunityComment = () => {
+    setEditingCommentId(null);
+    setEditingCommentContent('');
+  };
+
+  const updateCommunityComment = async (comment: CommunityComment) => {
+    if (!auth || !selectedCommunityPost) {
+      return;
+    }
+
+    if (!editingCommentContent.trim()) {
+      setMessage({tone: 'error', text: '댓글 내용을 입력해 주세요.'});
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const updated = await request<CommunityComment>(
+        `/community/posts/${selectedCommunityPost.id}/comments/${comment.id}`,
+        {
+          method: 'PATCH',
+          auth,
+          body: {content: editingCommentContent.trim()},
+        },
+      );
+      setCommunityComments(current =>
+        current.map(item => (item.id === updated.id ? updated : item)),
+      );
+      setEditingCommentId(null);
+      setEditingCommentContent('');
+      setMessage({tone: 'success', text: '댓글을 수정했습니다.'});
+    } catch (error) {
+      setMessage({
+        tone: 'error',
+        text: getErrorMessage(error, '댓글 수정에 실패했습니다.'),
       });
     } finally {
       setLoading(false);
@@ -402,6 +525,10 @@ export function useCommunityFeature({
           ? {...current, commentCount: Math.max(current.commentCount - 1, 0)}
           : current,
       );
+      if (editingCommentId === comment.id) {
+        setEditingCommentId(null);
+        setEditingCommentContent('');
+      }
       setMessage({tone: 'success', text: '댓글을 삭제했습니다.'});
     } catch (error) {
       setMessage({
@@ -417,6 +544,7 @@ export function useCommunityFeature({
     communityPosts,
     selectedCommunityPost,
     postWriting,
+    postEditing,
     postDraftRestaurant,
     postPlaceQuery,
     postPlaceResults,
@@ -425,6 +553,8 @@ export function useCommunityFeature({
     postImageUrl,
     communityComments,
     commentContent,
+    editingCommentId,
+    editingCommentContent,
     setSelectedCommunityPost,
     setPostWriting,
     setPostDraftRestaurant,
@@ -435,6 +565,7 @@ export function useCommunityFeature({
     setPostImageUrl,
     setCommunityComments,
     setCommentContent,
+    setEditingCommentContent,
     resetCommunityState,
     resetCommunitySelection,
     loadCommunityPosts,
@@ -444,9 +575,15 @@ export function useCommunityFeature({
     searchCommunityPostPlaces,
     selectCommunityPostPlace,
     createCommunityPost,
+    startEditCommunityPost,
+    cancelEditCommunityPost,
+    updateCommunityPost,
     saveCommunityRestaurant,
     toggleCommunityRecommendation,
     createCommunityComment,
+    startEditCommunityComment,
+    cancelEditCommunityComment,
+    updateCommunityComment,
     deleteCommunityPost,
     deleteCommunityComment,
   };

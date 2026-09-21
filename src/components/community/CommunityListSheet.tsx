@@ -1,5 +1,5 @@
-import React from 'react';
-import {Pressable, ScrollView, Text, View} from 'react-native';
+import React, {useMemo, useState} from 'react';
+import {Pressable, ScrollView, Text, TextInput, View} from 'react-native';
 import {styles} from '../../styles';
 import type {CommunityPost, Restaurant} from '../../types';
 import {formatDate} from '../../utils/date';
@@ -24,13 +24,34 @@ export function CommunityListSheet({
   onSaveRestaurant,
   onStartPost,
 }: CommunityListSheetProps) {
+  const [filterQuery, setFilterQuery] = useState('');
+  const filteredPosts = useMemo(() => {
+    const normalizedQuery = filterQuery.trim().toLowerCase();
+    if (!normalizedQuery) {
+      return posts;
+    }
+
+    return posts.filter(post =>
+      [
+        post.title,
+        post.content,
+        post.restaurant.name,
+        post.restaurant.address,
+        post.restaurant.category ?? '',
+      ]
+        .join(' ')
+        .toLowerCase()
+        .includes(normalizedQuery),
+    );
+  }, [filterQuery, posts]);
+
   return (
     <View>
       {showHandle ? <View style={styles.sheetHandle} /> : null}
       <View style={styles.sheetHeader}>
         <View>
           <Text style={styles.sheetTitle}>커뮤니티</Text>
-          <Text style={styles.sheetCount}>{posts.length}개</Text>
+          <Text style={styles.sheetCount}>{filteredPosts.length}개</Text>
         </View>
         <Pressable
           style={({pressed}) => [
@@ -43,16 +64,24 @@ export function CommunityListSheet({
           <Text style={styles.writeButtonText}>글쓰기</Text>
         </Pressable>
       </View>
+      <TextInput
+        style={[styles.input, styles.listFilterInput]}
+        placeholder="게시글 검색"
+        value={filterQuery}
+        onChangeText={setFilterQuery}
+      />
       {posts.length === 0 ? (
         <Text style={styles.sheetEmptyText}>
           글쓰기를 눌러 장소에 대한 후기를 남겨보세요.
         </Text>
+      ) : filteredPosts.length === 0 ? (
+        <Text style={styles.sheetEmptyText}>검색 결과가 없습니다.</Text>
       ) : (
         <ScrollView
           style={styles.sheetScroll}
           contentContainerStyle={styles.sheetList}
           showsVerticalScrollIndicator={false}>
-          {posts.map(post => {
+          {filteredPosts.map(post => {
             const saved = Boolean(findSavedRestaurant(post.restaurant, savedRestaurants));
 
             return (
