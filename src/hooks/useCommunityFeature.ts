@@ -349,6 +349,70 @@ export function useCommunityFeature({
     }
   };
 
+  const deleteCommunityPost = async (post: CommunityPost) => {
+    if (!auth) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await request(`/community/posts/${post.id}`, {
+        method: 'DELETE',
+        auth,
+      });
+      setCommunityPosts(current => current.filter(item => item.id !== post.id));
+      setSelectedCommunityPost(null);
+      setCommunityComments([]);
+      setCommentContent('');
+      setMessage({tone: 'success', text: '게시글을 삭제했습니다.'});
+    } catch (error) {
+      setMessage({
+        tone: 'error',
+        text: getErrorMessage(error, '게시글 삭제에 실패했습니다.'),
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteCommunityComment = async (comment: CommunityComment) => {
+    if (!auth || !selectedCommunityPost) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await request(
+        `/community/posts/${selectedCommunityPost.id}/comments/${comment.id}`,
+        {
+          method: 'DELETE',
+          auth,
+        },
+      );
+      setCommunityComments(current => current.filter(item => item.id !== comment.id));
+      setCommunityPosts(current =>
+        current.map(post =>
+          post.id === selectedCommunityPost.id
+            ? {...post, commentCount: Math.max(post.commentCount - 1, 0)}
+            : post,
+        ),
+      );
+      setSelectedCommunityPost(current =>
+        current
+          ? {...current, commentCount: Math.max(current.commentCount - 1, 0)}
+          : current,
+      );
+      setMessage({tone: 'success', text: '댓글을 삭제했습니다.'});
+    } catch (error) {
+      setMessage({
+        tone: 'error',
+        text: getErrorMessage(error, '댓글 삭제에 실패했습니다.'),
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     communityPosts,
     selectedCommunityPost,
@@ -383,5 +447,7 @@ export function useCommunityFeature({
     saveCommunityRestaurant,
     toggleCommunityRecommendation,
     createCommunityComment,
+    deleteCommunityPost,
+    deleteCommunityComment,
   };
 }

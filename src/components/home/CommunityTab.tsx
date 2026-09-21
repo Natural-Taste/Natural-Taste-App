@@ -20,9 +20,11 @@ type CommunityTabProps = {
   communityComments: CommunityComment[];
   commentContent: string;
   savedRestaurants: Restaurant[];
+  userId: number;
   onSelectCommunityPost: (post: CommunityPost | null) => void;
   onSaveCommunityRestaurant: (post: CommunityPost) => void;
   onToggleCommunityRecommendation: (post: CommunityPost) => void;
+  onDeleteCommunityPost: (post: CommunityPost) => void;
   onStartCommunityPost: () => void;
   onCancelCommunityPost: () => void;
   onSearchCommunityPostPlaces: () => void;
@@ -33,6 +35,7 @@ type CommunityTabProps = {
   onChangePostContent: (value: string) => void;
   onChangePostImageUrl: (value: string) => void;
   onCreateCommunityComment: () => void;
+  onDeleteCommunityComment: (comment: CommunityComment) => void;
   onChangeCommentContent: (value: string) => void;
 };
 
@@ -51,9 +54,11 @@ export function CommunityTab({
   communityComments,
   commentContent,
   savedRestaurants,
+  userId,
   onSelectCommunityPost,
   onSaveCommunityRestaurant,
   onToggleCommunityRecommendation,
+  onDeleteCommunityPost,
   onStartCommunityPost,
   onCancelCommunityPost,
   onSearchCommunityPostPlaces,
@@ -64,6 +69,7 @@ export function CommunityTab({
   onChangePostContent,
   onChangePostImageUrl,
   onCreateCommunityComment,
+  onDeleteCommunityComment,
   onChangeCommentContent,
 }: CommunityTabProps) {
   return (
@@ -87,10 +93,12 @@ export function CommunityTab({
         comments={communityComments}
         commentContent={commentContent}
         savedRestaurants={savedRestaurants}
+        userId={userId}
         loading={loading}
         onSelectPost={onSelectCommunityPost}
         onSaveRestaurant={onSaveCommunityRestaurant}
         onToggleRecommendation={onToggleCommunityRecommendation}
+        onDeletePost={onDeleteCommunityPost}
         onStartPost={onStartCommunityPost}
         onCancelPost={onCancelCommunityPost}
         onSearchPlaces={onSearchCommunityPostPlaces}
@@ -101,6 +109,7 @@ export function CommunityTab({
         onChangeContent={onChangePostContent}
         onChangeImageUrl={onChangePostImageUrl}
         onCreateComment={onCreateCommunityComment}
+        onDeleteComment={onDeleteCommunityComment}
         onChangeCommentContent={onChangeCommentContent}
         onClose={() => onSelectCommunityPost(null)}
         showHandle={false}

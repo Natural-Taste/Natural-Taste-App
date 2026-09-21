@@ -10,11 +10,14 @@ type CommunityDetailSheetProps = {
   comments: CommunityComment[];
   commentContent: string;
   savedRestaurants: Restaurant[];
+  userId: number;
   loading: boolean;
   showHandle: boolean;
   onSaveRestaurant: (post: CommunityPost) => void;
   onToggleRecommendation: (post: CommunityPost) => void;
+  onDeletePost: (post: CommunityPost) => void;
   onCreateComment: () => void;
+  onDeleteComment: (comment: CommunityComment) => void;
   onChangeCommentContent: (value: string) => void;
   onClose: () => void;
 };
@@ -24,15 +27,19 @@ export function CommunityDetailSheet({
   comments,
   commentContent,
   savedRestaurants,
+  userId,
   loading,
   showHandle,
   onSaveRestaurant,
   onToggleRecommendation,
+  onDeletePost,
   onCreateComment,
+  onDeleteComment,
   onChangeCommentContent,
   onClose,
 }: CommunityDetailSheetProps) {
   const saved = Boolean(findSavedRestaurant(selectedPost.restaurant, savedRestaurants));
+  const canDeletePost = selectedPost.authorId === userId;
 
   return (
     <ScrollView
@@ -75,6 +82,25 @@ export function CommunityDetailSheet({
           </Text>
         </View>
         <View style={styles.postActionRow}>
+          {canDeletePost ? (
+            <Pressable
+              style={({pressed}) => [
+                styles.recommendButton,
+                styles.smallActionDangerButton,
+                pressed ? styles.pressed : null,
+                loading ? styles.disabled : null,
+              ]}
+              onPress={() => onDeletePost(selectedPost)}
+              disabled={loading}>
+              <Text
+                style={[
+                  styles.recommendButtonText,
+                  styles.smallActionDangerButtonText,
+                ]}>
+                게시글 삭제
+              </Text>
+            </Pressable>
+          ) : null}
           <Pressable
             style={({pressed}) => [
               styles.recommendButton,
@@ -116,9 +142,30 @@ export function CommunityDetailSheet({
             <View style={styles.commentList}>
               {comments.map(comment => (
                 <View key={comment.id} style={styles.commentItem}>
-                  <Text style={styles.restaurantMeta}>
-                    작성자 {comment.authorId} · {formatDate(comment.createdAt)}
-                  </Text>
+                  <View style={styles.detailTopRow}>
+                    <Text style={styles.restaurantMeta}>
+                      작성자 {comment.authorId} · {formatDate(comment.createdAt)}
+                    </Text>
+                    {comment.authorId === userId ? (
+                      <Pressable
+                        style={({pressed}) => [
+                          styles.smallActionButton,
+                          styles.smallActionDangerButton,
+                          pressed ? styles.pressed : null,
+                          loading ? styles.disabled : null,
+                        ]}
+                        onPress={() => onDeleteComment(comment)}
+                        disabled={loading}>
+                        <Text
+                          style={[
+                            styles.smallActionButtonText,
+                            styles.smallActionDangerButtonText,
+                          ]}>
+                          삭제
+                        </Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
                   <Text style={styles.commentContent}>{comment.content}</Text>
                 </View>
               ))}

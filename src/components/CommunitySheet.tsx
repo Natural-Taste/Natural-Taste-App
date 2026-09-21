@@ -17,10 +17,12 @@ type CommunitySheetProps = {
   comments: CommunityComment[];
   commentContent: string;
   savedRestaurants: Restaurant[];
+  userId: number;
   loading: boolean;
   onSelectPost: (post: CommunityPost) => void;
   onSaveRestaurant: (post: CommunityPost) => void;
   onToggleRecommendation: (post: CommunityPost) => void;
+  onDeletePost: (post: CommunityPost) => void;
   onStartPost: () => void;
   onCancelPost: () => void;
   onSearchPlaces: () => void;
@@ -31,6 +33,7 @@ type CommunitySheetProps = {
   onChangeContent: (value: string) => void;
   onChangeImageUrl: (value: string) => void;
   onCreateComment: () => void;
+  onDeleteComment: (comment: CommunityComment) => void;
   onChangeCommentContent: (value: string) => void;
   onClose: () => void;
   showHandle?: boolean;
@@ -49,10 +52,12 @@ export function CommunitySheet({
   comments,
   commentContent,
   savedRestaurants,
+  userId,
   loading,
   onSelectPost,
   onSaveRestaurant,
   onToggleRecommendation,
+  onDeletePost,
   onStartPost,
   onCancelPost,
   onSearchPlaces,
@@ -63,6 +68,7 @@ export function CommunitySheet({
   onChangeContent,
   onChangeImageUrl,
   onCreateComment,
+  onDeleteComment,
   onChangeCommentContent,
   onClose,
   showHandle = true,
@@ -98,11 +104,14 @@ export function CommunitySheet({
         comments={comments}
         commentContent={commentContent}
         savedRestaurants={savedRestaurants}
+        userId={userId}
         loading={loading}
         showHandle={showHandle}
         onSaveRestaurant={onSaveRestaurant}
         onToggleRecommendation={onToggleRecommendation}
+        onDeletePost={onDeletePost}
         onCreateComment={onCreateComment}
+        onDeleteComment={onDeleteComment}
         onChangeCommentContent={onChangeCommentContent}
         onClose={onClose}
       />

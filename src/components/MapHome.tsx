@@ -64,6 +64,7 @@ type MapHomeProps = {
   onSelectCommunityPost: (post: CommunityPost | null) => void;
   onSaveCommunityRestaurant: (post: CommunityPost) => void;
   onToggleCommunityRecommendation: (post: CommunityPost) => void;
+  onDeleteCommunityPost: (post: CommunityPost) => void;
   onStartCommunityPost: () => void;
   onCancelCommunityPost: () => void;
   onSearchCommunityPostPlaces: () => void;
@@ -74,6 +75,7 @@ type MapHomeProps = {
   onChangePostContent: (value: string) => void;
   onChangePostImageUrl: (value: string) => void;
   onCreateCommunityComment: () => void;
+  onDeleteCommunityComment: (comment: CommunityComment) => void;
   onChangeCommentContent: (value: string) => void;
   onCloseDetail: () => void;
   onOpenMyPage: () => void;
@@ -118,9 +120,11 @@ export function MapHome(props: MapHomeProps) {
           communityComments={props.communityComments}
           commentContent={props.commentContent}
           savedRestaurants={props.savedRestaurants}
+          userId={props.userId}
           onSelectCommunityPost={props.onSelectCommunityPost}
           onSaveCommunityRestaurant={props.onSaveCommunityRestaurant}
           onToggleCommunityRecommendation={props.onToggleCommunityRecommendation}
+          onDeleteCommunityPost={props.onDeleteCommunityPost}
           onStartCommunityPost={props.onStartCommunityPost}
           onCancelCommunityPost={props.onCancelCommunityPost}
           onSearchCommunityPostPlaces={props.onSearchCommunityPostPlaces}
@@ -131,6 +135,7 @@ export function MapHome(props: MapHomeProps) {
           onChangePostContent={props.onChangePostContent}
           onChangePostImageUrl={props.onChangePostImageUrl}
           onCreateCommunityComment={props.onCreateCommunityComment}
+          onDeleteCommunityComment={props.onDeleteCommunityComment}
           onChangeCommentContent={props.onChangeCommentContent}
         />
       ) : props.activePanel === 'search' ? (
