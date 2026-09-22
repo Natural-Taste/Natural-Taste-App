@@ -1,10 +1,11 @@
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import {Image, Pressable, ScrollView, Text, TextInput, View} from 'react-native';
 import {styles} from '../../styles';
 import type {CommunityComment, CommunityPost, Restaurant} from '../../types';
 import {formatDate} from '../../utils/date';
 import {findSavedRestaurant} from '../../utils/restaurants';
 import {Field} from '../Common';
+import {CommunityImagePreview} from './CommunityImagePreview';
 
 type CommunityDetailSheetProps = {
   selectedPost: CommunityPost;
@@ -14,6 +15,7 @@ type CommunityDetailSheetProps = {
   editTitle: string;
   editContent: string;
   editImageUrl: string;
+  imageUploading: boolean;
   editingCommentId: number | null;
   editingCommentContent: string;
   savedRestaurants: Restaurant[];
@@ -48,6 +50,7 @@ export function CommunityDetailSheet({
   editTitle,
   editContent,
   editImageUrl,
+  imageUploading,
   editingCommentId,
   editingCommentContent,
   savedRestaurants,
@@ -75,6 +78,13 @@ export function CommunityDetailSheet({
 }: CommunityDetailSheetProps) {
   const saved = Boolean(findSavedRestaurant(selectedPost.restaurant, savedRestaurants));
   const canManagePost = selectedPost.authorId === userId;
+  const postAuthorName =
+    selectedPost.authorName?.trim() || `작성자 ${selectedPost.authorId}`;
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    setFailedImageUrl(null);
+  }, [selectedPost.imageUrl]);
 
   return (
     <ScrollView
@@ -87,7 +97,7 @@ export function CommunityDetailSheet({
           <View style={styles.restaurantTextGroup}>
             <Text style={styles.detailName}>{selectedPost.title}</Text>
             <Text style={styles.restaurantMeta}>
-              작성자 {selectedPost.authorId} · {formatDate(selectedPost.createdAt)}
+              {postAuthorName} · {formatDate(selectedPost.createdAt)}
             </Text>
           </View>
           <Pressable
@@ -126,10 +136,20 @@ export function CommunityDetailSheet({
                   ]}
                   onPress={onPickImage}
                   disabled={loading}>
-                  <Text style={styles.inlineSearchButtonText}>사진 선택</Text>
+                  <Text style={styles.inlineSearchButtonText}>
+                    {imageUploading ? '업로드 중' : '사진 선택'}
+                  </Text>
                 </Pressable>
               </View>
+              {imageUploading ? (
+                <Text style={styles.fieldHelperText}>사진을 업로드하고 있습니다.</Text>
+              ) : null}
             </Field>
+            <CommunityImagePreview
+              imageUrl={editImageUrl}
+              loading={loading}
+              onRemove={() => onChangeEditImageUrl('')}
+            />
             <Field label="내용">
               <TextInput
                 style={[styles.input, styles.contentInput]}
@@ -165,12 +185,19 @@ export function CommunityDetailSheet({
           </View>
         ) : (
           <>
-            {selectedPost.imageUrl ? (
+            {selectedPost.imageUrl && failedImageUrl !== selectedPost.imageUrl ? (
               <Image
                 source={{uri: selectedPost.imageUrl}}
                 style={styles.postImage}
                 resizeMode="cover"
+                onError={() => setFailedImageUrl(selectedPost.imageUrl ?? null)}
               />
+            ) : selectedPost.imageUrl ? (
+              <View style={styles.imageFallbackBox}>
+                <Text style={styles.savedPlaceEmpty}>
+                  이미지를 불러올 수 없습니다.
+                </Text>
+              </View>
             ) : null}
             <Text style={styles.postContent}>{selectedPost.content}</Text>
           </>
@@ -259,7 +286,8 @@ export function CommunityDetailSheet({
                 <View key={comment.id} style={styles.commentItem}>
                   <View style={styles.detailTopRow}>
                     <Text style={styles.restaurantMeta}>
-                      작성자 {comment.authorId} · {formatDate(comment.createdAt)}
+                      {(comment.authorName?.trim() || `작성자 ${comment.authorId}`)} ·{' '}
+                      {formatDate(comment.createdAt)}
                     </Text>
                     {comment.authorId === userId ? (
                       <Pressable

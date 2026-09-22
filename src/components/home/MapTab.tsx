@@ -15,6 +15,7 @@ type MapTabProps = {
   selectedRestaurant: Restaurant | null;
   restaurantMemo: string;
   userLocation: UserLocation | null;
+  locationLoading: boolean;
   savedIdSet: Set<number>;
   onChangeQuery: (value: string) => void;
   onLoadUserLocation: () => void;
@@ -35,6 +36,7 @@ export function MapTab({
   selectedRestaurant,
   restaurantMemo,
   userLocation,
+  locationLoading,
   savedIdSet,
   onChangeQuery,
   onLoadUserLocation,
@@ -60,6 +62,9 @@ export function MapTab({
     selectedRestaurant && savedSelectedRestaurant
       ? {...selectedRestaurant, ...savedSelectedRestaurant, saved: true}
       : selectedRestaurant;
+  const locationHint = userLocation
+    ? '현재 위치 기준으로 검색합니다.'
+    : '현위치를 누르면 내 주변 맛집을 우선해서 찾을 수 있습니다.';
 
   return (
     <>
@@ -93,7 +98,7 @@ export function MapTab({
                 styles.mapLocationButtonText,
                 userLocation ? styles.mapLocationButtonActiveText : null,
               ]}>
-              현위치
+              {locationLoading ? '확인 중' : userLocation ? '위치 사용 중' : '현위치'}
             </Text>
           </Pressable>
           <TextInput
@@ -115,6 +120,7 @@ export function MapTab({
             <Text style={styles.mapSearchButtonText}>검색</Text>
           </Pressable>
         </View>
+        <Text style={styles.mapSearchHint}>{locationHint}</Text>
 
         <View
           style={[

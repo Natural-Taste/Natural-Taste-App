@@ -15,6 +15,7 @@ type CommunitySheetProps = {
   title: string;
   content: string;
   imageUrl: string;
+  imageUploading: boolean;
   comments: CommunityComment[];
   commentContent: string;
   editingCommentId: number | null;
@@ -61,6 +62,7 @@ export function CommunitySheet({
   title,
   content,
   imageUrl,
+  imageUploading,
   comments,
   commentContent,
   editingCommentId,
@@ -104,6 +106,7 @@ export function CommunitySheet({
         title={title}
         content={content}
         imageUrl={imageUrl}
+        imageUploading={imageUploading}
         savedRestaurants={savedRestaurants}
         loading={loading}
         showHandle={showHandle}
@@ -130,6 +133,7 @@ export function CommunitySheet({
         editTitle={title}
         editContent={content}
         editImageUrl={imageUrl}
+        imageUploading={imageUploading}
         editingCommentId={editingCommentId}
         editingCommentContent={editingCommentContent}
         savedRestaurants={savedRestaurants}

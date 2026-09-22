@@ -30,6 +30,7 @@ export function useCommunityFeature({
   const [postTitle, setPostTitle] = useState('');
   const [postContent, setPostContent] = useState('');
   const [postImageUrl, setPostImageUrl] = useState('');
+  const [postImageUploading, setPostImageUploading] = useState(false);
   const [communityComments, setCommunityComments] = useState<CommunityComment[]>([]);
   const [commentContent, setCommentContent] = useState('');
   const [postEditing, setPostEditing] = useState(false);
@@ -47,6 +48,7 @@ export function useCommunityFeature({
     setPostTitle('');
     setPostContent('');
     setPostImageUrl('');
+    setPostImageUploading(false);
     setCommunityComments([]);
     setCommentContent('');
     setEditingCommentId(null);
@@ -60,6 +62,7 @@ export function useCommunityFeature({
     setPostDraftRestaurant(null);
     setPostPlaceQuery('');
     setPostPlaceResults([]);
+    setPostImageUploading(false);
     setCommunityComments([]);
     setCommentContent('');
     setEditingCommentId(null);
@@ -138,6 +141,7 @@ export function useCommunityFeature({
     setPostTitle('');
     setPostContent('');
     setPostImageUrl('');
+    setPostImageUploading(false);
     setCommunityComments([]);
     setCommentContent('');
   };
@@ -151,6 +155,7 @@ export function useCommunityFeature({
     setPostTitle('');
     setPostContent('');
     setPostImageUrl('');
+    setPostImageUploading(false);
   };
 
   const searchCommunityPostPlaces = async () => {
@@ -223,6 +228,8 @@ export function useCommunityFeature({
     }
 
     setLoading(true);
+    setPostImageUploading(true);
+    setMessage({tone: 'info', text: '사진을 업로드하는 중입니다.'});
     try {
       const uploaded = await uploadImage(
         {
@@ -240,6 +247,7 @@ export function useCommunityFeature({
         text: getErrorMessage(error, '사진 업로드에 실패했습니다.'),
       });
     } finally {
+      setPostImageUploading(false);
       setLoading(false);
     }
   };
@@ -604,6 +612,7 @@ export function useCommunityFeature({
     postTitle,
     postContent,
     postImageUrl,
+    postImageUploading,
     communityComments,
     commentContent,
     editingCommentId,

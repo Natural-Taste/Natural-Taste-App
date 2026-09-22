@@ -149,6 +149,13 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
+  mapSearchHint: {
+    color: '#505449',
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 8,
+    paddingHorizontal: 4,
+  },
   mapStatusText: {
     color: '#3F4438',
     flex: 1,
@@ -332,6 +339,33 @@ export const styles = StyleSheet.create({
     color: '#777B6E',
     fontSize: 13,
     lineHeight: 19,
+  },
+  fieldHelperText: {
+    color: '#777B6E',
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 17,
+    marginTop: 8,
+  },
+  imagePreviewBox: {
+    marginBottom: 14,
+  },
+  imagePreviewHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  imageFallbackBox: {
+    alignItems: 'center',
+    backgroundColor: '#FCFBF7',
+    borderColor: '#E4E0D5',
+    borderRadius: 8,
+    borderWidth: 1,
+    justifyContent: 'center',
+    marginBottom: 14,
+    minHeight: 120,
+    padding: 16,
   },
   friendSection: {
     marginBottom: 18,

@@ -36,6 +36,7 @@ export type UserLocation = {
 export type CommunityPost = {
   id: number;
   authorId: number;
+  authorName?: string | null;
   title: string;
   content: string;
   imageUrl?: string | null;
@@ -51,6 +52,7 @@ export type CommunityComment = {
   id: number;
   postId: number;
   authorId: number;
+  authorName?: string | null;
   content: string;
   createdAt: string;
   updatedAt?: string;

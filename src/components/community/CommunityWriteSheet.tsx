@@ -4,6 +4,7 @@ import {styles} from '../../styles';
 import type {Restaurant} from '../../types';
 import {getRestaurantKey} from '../../utils/restaurants';
 import {Field, PrimaryButton} from '../Common';
+import {CommunityImagePreview} from './CommunityImagePreview';
 
 type CommunityWriteSheetProps = {
   draftRestaurant: Restaurant | null;
@@ -12,6 +13,7 @@ type CommunityWriteSheetProps = {
   title: string;
   content: string;
   imageUrl: string;
+  imageUploading: boolean;
   savedRestaurants: Restaurant[];
   loading: boolean;
   showHandle: boolean;
@@ -33,6 +35,7 @@ export function CommunityWriteSheet({
   title,
   content,
   imageUrl,
+  imageUploading,
   savedRestaurants,
   loading,
   showHandle,
@@ -144,10 +147,20 @@ export function CommunityWriteSheet({
               ]}
               onPress={onPickImage}
               disabled={loading}>
-              <Text style={styles.inlineSearchButtonText}>사진 선택</Text>
+              <Text style={styles.inlineSearchButtonText}>
+                {imageUploading ? '업로드 중' : '사진 선택'}
+              </Text>
             </Pressable>
           </View>
+          {imageUploading ? (
+            <Text style={styles.fieldHelperText}>사진을 업로드하고 있습니다.</Text>
+          ) : null}
         </Field>
+        <CommunityImagePreview
+          imageUrl={imageUrl}
+          loading={loading}
+          onRemove={() => onChangeImageUrl('')}
+        />
         <Field label="내용">
           <TextInput
             style={[styles.input, styles.contentInput]}

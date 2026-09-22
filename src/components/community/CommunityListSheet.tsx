@@ -35,6 +35,7 @@ export function CommunityListSheet({
       [
         post.title,
         post.content,
+        post.authorName ?? '',
         post.restaurant.name,
         post.restaurant.address,
         post.restaurant.category ?? '',
@@ -98,6 +99,9 @@ export function CommunityListSheet({
                   </Text>
                   <Text style={styles.restaurantMeta} numberOfLines={1}>
                     {post.restaurant.name}
+                  </Text>
+                  <Text style={styles.postDate} numberOfLines={1}>
+                    {post.authorName?.trim() || `작성자 ${post.authorId}`}
                   </Text>
                   <Text style={styles.restaurantAddress} numberOfLines={1}>
                     {post.restaurant.address}

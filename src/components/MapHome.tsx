@@ -26,6 +26,7 @@ type MapHomeProps = {
   selectedRestaurant: Restaurant | null;
   restaurantMemo: string;
   userLocation: UserLocation | null;
+  locationLoading: boolean;
   communityPosts: CommunityPost[];
   selectedCommunityPost: CommunityPost | null;
   postDraftRestaurant: Restaurant | null;
@@ -36,6 +37,7 @@ type MapHomeProps = {
   postTitle: string;
   postContent: string;
   postImageUrl: string;
+  postImageUploading: boolean;
   communityComments: CommunityComment[];
   commentContent: string;
   editingCommentId: number | null;
@@ -120,6 +122,7 @@ export function MapHome(props: MapHomeProps) {
           selectedRestaurant={props.selectedRestaurant}
           restaurantMemo={props.restaurantMemo}
           userLocation={props.userLocation}
+          locationLoading={props.locationLoading}
           savedIdSet={props.savedIdSet}
           onChangeQuery={props.onChangeQuery}
           onLoadUserLocation={props.onLoadUserLocation}
@@ -144,6 +147,7 @@ export function MapHome(props: MapHomeProps) {
           postTitle={props.postTitle}
           postContent={props.postContent}
           postImageUrl={props.postImageUrl}
+          postImageUploading={props.postImageUploading}
           communityComments={props.communityComments}
           commentContent={props.commentContent}
           editingCommentId={props.editingCommentId}

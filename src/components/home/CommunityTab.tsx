@@ -18,6 +18,7 @@ type CommunityTabProps = {
   postTitle: string;
   postContent: string;
   postImageUrl: string;
+  postImageUploading: boolean;
   communityComments: CommunityComment[];
   commentContent: string;
   editingCommentId: number | null;
@@ -63,6 +64,7 @@ export function CommunityTab({
   postTitle,
   postContent,
   postImageUrl,
+  postImageUploading,
   communityComments,
   commentContent,
   editingCommentId,
@@ -113,6 +115,7 @@ export function CommunityTab({
         title={postTitle}
         content={postContent}
         imageUrl={postImageUrl}
+        imageUploading={postImageUploading}
         comments={communityComments}
         commentContent={commentContent}
         editingCommentId={editingCommentId}

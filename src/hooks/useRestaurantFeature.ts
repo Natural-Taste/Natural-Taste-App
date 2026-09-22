@@ -18,6 +18,7 @@ export function useRestaurantFeature({auth, setLoading, setMessage}: UseRestaura
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [restaurantMemo, setRestaurantMemo] = useState('');
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
 
   const savedIdSet = useMemo(
     () =>
@@ -52,6 +53,7 @@ export function useRestaurantFeature({auth, setLoading, setMessage}: UseRestaura
     setSelectedRestaurant(null);
     setRestaurantMemo('');
     setUserLocation(null);
+    setLocationLoading(false);
   };
 
   const loadUserLocation = async () => {
@@ -60,23 +62,37 @@ export function useRestaurantFeature({auth, setLoading, setMessage}: UseRestaura
         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
       );
       if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-        setMessage({tone: 'error', text: '위치 권한이 필요합니다.'});
+        setMessage({
+          tone: 'error',
+          text: '위치 권한이 꺼져 있습니다. 권한을 허용하면 내 주변 맛집을 검색할 수 있습니다.',
+        });
         return;
       }
     }
 
     setLoading(true);
+    setLocationLoading(true);
+    setMessage({tone: 'info', text: '현재 위치를 확인하는 중입니다.'});
     Geolocation.getCurrentPosition(
       position => {
         setUserLocation({
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
         });
-        setMessage({tone: 'success', text: '현재 위치를 확인했습니다.'});
+        setMessage({
+          tone: 'success',
+          text: '현재 위치를 사용합니다. 검색하면 내 주변 결과를 우선해서 보여줍니다.',
+        });
+        setLocationLoading(false);
         setLoading(false);
       },
-      () => {
-        setMessage({tone: 'error', text: '현재 위치를 확인할 수 없습니다.'});
+      error => {
+        const text =
+          error.code === 1
+            ? '위치 권한이 꺼져 있습니다. 설정에서 위치 접근을 허용해 주세요.'
+            : '현재 위치를 확인할 수 없습니다. 잠시 후 다시 시도해 주세요.';
+        setMessage({tone: 'error', text});
+        setLocationLoading(false);
         setLoading(false);
       },
       {enableHighAccuracy: true, timeout: 10000, maximumAge: 60000},
@@ -254,6 +270,7 @@ export function useRestaurantFeature({auth, setLoading, setMessage}: UseRestaura
     selectedRestaurant,
     restaurantMemo,
     userLocation,
+    locationLoading,
     savedIdSet,
     visibleRestaurants,
     setQuery,
