@@ -770,6 +770,11 @@ export const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
   },
+  restaurantDistance: {
+    color: '#3F4438',
+    fontSize: 13,
+    fontWeight: '800',
+  },
   restaurantAddress: {
     color: '#676B5E',
     fontSize: 13,

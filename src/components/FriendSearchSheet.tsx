@@ -1,9 +1,13 @@
 import React, {useMemo, useState} from 'react';
 import {Pressable, ScrollView, Text, TextInput, View} from 'react-native';
 import {styles} from '../styles';
-import type {FriendRequest, FriendUser, Restaurant} from '../types';
+import type {FriendRequest, FriendUser, Restaurant, UserLocation} from '../types';
 import {formatDate} from '../utils/date';
-import {findSavedRestaurant, getRestaurantKey} from '../utils/restaurants';
+import {
+  findSavedRestaurant,
+  formatRestaurantDistance,
+  getRestaurantKey,
+} from '../utils/restaurants';
 import {Field} from './Common';
 
 export function FriendSearchSheet({
@@ -15,6 +19,7 @@ export function FriendSearchSheet({
   selectedFriend,
   friendRestaurants,
   savedRestaurants,
+  userLocation,
   loading,
   onChangeQuery,
   onSearchUsers,
@@ -34,6 +39,7 @@ export function FriendSearchSheet({
   selectedFriend: FriendUser | null;
   friendRestaurants: Restaurant[];
   savedRestaurants: Restaurant[];
+  userLocation: UserLocation | null;
   loading: boolean;
   onChangeQuery: (value: string) => void;
   onSearchUsers: () => void;
@@ -307,6 +313,10 @@ export function FriendSearchSheet({
                   restaurant.saved ||
                   (restaurant.id !== null && savedIdSet.has(restaurant.id)) ||
                   Boolean(findSavedRestaurant(restaurant, savedRestaurants));
+                const distance = formatRestaurantDistance(
+                  restaurant,
+                  userLocation,
+                );
 
                 return (
                   <View key={getRestaurantKey(restaurant)} style={styles.friendRestaurantRow}>
@@ -317,6 +327,13 @@ export function FriendSearchSheet({
                       <Text style={styles.restaurantMeta} numberOfLines={1}>
                         {restaurant.category || '카테고리 미정'}
                       </Text>
+                      {distance ? (
+                        <Text
+                          style={styles.restaurantDistance}
+                          numberOfLines={1}>
+                          거리 {distance}
+                        </Text>
+                      ) : null}
                       <Text style={styles.restaurantAddress} numberOfLines={1}>
                         {restaurant.address}
                       </Text>

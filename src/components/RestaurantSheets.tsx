@@ -1,8 +1,8 @@
 import React, {useMemo, useState} from 'react';
 import {Pressable, ScrollView, Text, TextInput, View} from 'react-native';
 import {styles} from '../styles';
-import type {Restaurant} from '../types';
-import {getRestaurantKey} from '../utils/restaurants';
+import type {Restaurant, UserLocation} from '../types';
+import {formatRestaurantDistance, getRestaurantKey} from '../utils/restaurants';
 import {PrimaryButton} from './Common';
 
 export function MapRestaurantSheet({
@@ -10,6 +10,7 @@ export function MapRestaurantSheet({
   emptyText,
   restaurants,
   savedIdSet,
+  userLocation,
   loading,
   onSelectRestaurant,
   onToggleSaved,
@@ -18,6 +19,7 @@ export function MapRestaurantSheet({
   emptyText: string;
   restaurants: Restaurant[];
   savedIdSet: Set<number>;
+  userLocation: UserLocation | null;
   loading: boolean;
   onSelectRestaurant: (restaurant: Restaurant) => void;
   onToggleSaved: (restaurant: Restaurant) => void;
@@ -68,6 +70,7 @@ export function MapRestaurantSheet({
             const saved =
               restaurant.saved ||
               (restaurant.id !== null && savedIdSet.has(restaurant.id));
+            const distance = formatRestaurantDistance(restaurant, userLocation);
 
             return (
               <Pressable
@@ -82,6 +85,11 @@ export function MapRestaurantSheet({
                   <Text style={styles.restaurantMeta} numberOfLines={1}>
                     {restaurant.category || '카테고리 미정'}
                   </Text>
+                  {distance ? (
+                    <Text style={styles.restaurantDistance} numberOfLines={1}>
+                      거리 {distance}
+                    </Text>
+                  ) : null}
                   <Text style={styles.restaurantAddress} numberOfLines={1}>
                     {restaurant.address}
                   </Text>
@@ -121,6 +129,7 @@ export function MapRestaurantDetail({
   restaurant,
   saved,
   memo,
+  userLocation,
   loading,
   onToggleSaved,
   onChangeMemo,
@@ -130,12 +139,15 @@ export function MapRestaurantDetail({
   restaurant: Restaurant;
   saved: boolean;
   memo: string;
+  userLocation: UserLocation | null;
   loading: boolean;
   onToggleSaved: (restaurant: Restaurant) => void;
   onChangeMemo: (value: string) => void;
   onUpdateMemo: (restaurant: Restaurant) => void;
   onClose: () => void;
 }) {
+  const distance = formatRestaurantDistance(restaurant, userLocation);
+
   return (
     <View>
       <View style={styles.sheetHandle} />
@@ -145,6 +157,9 @@ export function MapRestaurantDetail({
           <Text style={styles.restaurantMeta}>
             {restaurant.category || '카테고리 미정'}
           </Text>
+          {distance ? (
+            <Text style={styles.restaurantDistance}>거리 {distance}</Text>
+          ) : null}
         </View>
         <Pressable
           style={({pressed}) => [

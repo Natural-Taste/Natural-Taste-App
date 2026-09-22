@@ -1,4 +1,6 @@
-import type {Restaurant} from '../types';
+import type {Restaurant, UserLocation} from '../types';
+
+const EARTH_RADIUS_METERS = 6371000;
 
 export function getRestaurantKey(restaurant: Restaurant) {
   if (restaurant.provider && restaurant.providerPlaceId) {
@@ -38,4 +40,58 @@ export function toSaveRestaurantBody(restaurant: Restaurant) {
     phone: restaurant.phone,
     placeUrl: restaurant.placeUrl,
   };
+}
+
+export function formatRestaurantDistance(
+  restaurant: Restaurant,
+  userLocation: UserLocation | null,
+) {
+  if (
+    !userLocation ||
+    !isFiniteCoordinate(userLocation.latitude) ||
+    !isFiniteCoordinate(userLocation.longitude) ||
+    !isFiniteCoordinate(restaurant.latitude) ||
+    !isFiniteCoordinate(restaurant.longitude)
+  ) {
+    return null;
+  }
+
+  const distanceMeters = getDistanceMeters(userLocation, {
+    latitude: restaurant.latitude,
+    longitude: restaurant.longitude,
+  });
+
+  if (distanceMeters < 1000) {
+    return `${Math.round(distanceMeters)}m`;
+  }
+
+  return `${(distanceMeters / 1000).toFixed(1)}km`;
+}
+
+function getDistanceMeters(from: UserLocation, to: UserLocation) {
+  const fromLatitude = toRadians(from.latitude);
+  const toLatitude = toRadians(to.latitude);
+  const latitudeDelta = toRadians(to.latitude - from.latitude);
+  const longitudeDelta = toRadians(to.longitude - from.longitude);
+
+  const haversine =
+    Math.sin(latitudeDelta / 2) * Math.sin(latitudeDelta / 2) +
+    Math.cos(fromLatitude) *
+      Math.cos(toLatitude) *
+      Math.sin(longitudeDelta / 2) *
+      Math.sin(longitudeDelta / 2);
+
+  return (
+    EARTH_RADIUS_METERS *
+    2 *
+    Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine))
+  );
+}
+
+function isFiniteCoordinate(value: number) {
+  return Number.isFinite(value);
+}
+
+function toRadians(value: number) {
+  return (value * Math.PI) / 180;
 }

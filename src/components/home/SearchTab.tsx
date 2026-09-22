@@ -1,7 +1,13 @@
 import React from 'react';
 import {View} from 'react-native';
 import {styles} from '../../styles';
-import type {FriendRequest, FriendUser, Message, Restaurant} from '../../types';
+import type {
+  FriendRequest,
+  FriendUser,
+  Message,
+  Restaurant,
+  UserLocation,
+} from '../../types';
 import {FriendSearchSheet} from '../FriendSearchSheet';
 import {TabScreenHeader} from './TabScreenHeader';
 
@@ -16,6 +22,7 @@ type SearchTabProps = {
   selectedFriend: FriendUser | null;
   friendRestaurants: Restaurant[];
   savedRestaurants: Restaurant[];
+  userLocation: UserLocation | null;
   onChangeUserSearchQuery: (value: string) => void;
   onSearchUsers: () => void;
   onRequestFriend: (user: FriendUser) => void;
@@ -38,6 +45,7 @@ export function SearchTab({
   selectedFriend,
   friendRestaurants,
   savedRestaurants,
+  userLocation,
   onChangeUserSearchQuery,
   onSearchUsers,
   onRequestFriend,
@@ -65,6 +73,7 @@ export function SearchTab({
         selectedFriend={selectedFriend}
         friendRestaurants={friendRestaurants}
         savedRestaurants={savedRestaurants}
+        userLocation={userLocation}
         loading={loading}
         onChangeQuery={onChangeUserSearchQuery}
         onSearchUsers={onSearchUsers}

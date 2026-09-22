@@ -191,6 +191,7 @@ export function MapHome(props: MapHomeProps) {
           selectedFriend={props.selectedFriend}
           friendRestaurants={props.friendRestaurants}
           savedRestaurants={props.savedRestaurants}
+          userLocation={props.userLocation}
           onChangeUserSearchQuery={props.onChangeUserSearchQuery}
           onSearchUsers={props.onSearchUsers}
           onRequestFriend={props.onRequestFriend}

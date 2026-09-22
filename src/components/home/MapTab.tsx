@@ -146,6 +146,7 @@ export function MapTab({
             restaurant={detailRestaurant}
             saved={Boolean(detailRestaurant.saved || savedSelectedRestaurant)}
             memo={restaurantMemo}
+            userLocation={userLocation}
             loading={loading}
             onToggleSaved={onToggleSaved}
             onChangeMemo={onChangeRestaurantMemo}
@@ -162,6 +163,7 @@ export function MapTab({
             }
             restaurants={sheetRestaurants}
             savedIdSet={savedIdSet}
+            userLocation={userLocation}
             loading={loading}
             onSelectRestaurant={onSelectRestaurant}
             onToggleSaved={onToggleSaved}
