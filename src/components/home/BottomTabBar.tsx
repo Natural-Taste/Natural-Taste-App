@@ -6,6 +6,7 @@ import type {ActivePanel} from '../../types';
 type BottomTabBarProps = {
   activePanel: ActivePanel;
   loading: boolean;
+  unreadNotificationCount: number;
   onOpenMap: () => void;
   onOpenCommunity: () => void;
   onOpenSearch: () => void;
@@ -15,6 +16,7 @@ type BottomTabBarProps = {
 export function BottomTabBar({
   activePanel,
   loading,
+  unreadNotificationCount,
   onOpenMap,
   onOpenCommunity,
   onOpenSearch,
@@ -44,6 +46,7 @@ export function BottomTabBar({
         label="마이페이지"
         active={activePanel === 'mypage'}
         disabled={loading}
+        badgeCount={unreadNotificationCount}
         onPress={onOpenMyPage}
       />
     </View>
@@ -54,6 +57,7 @@ type BottomTabButtonProps = {
   label: string;
   active: boolean;
   disabled: boolean;
+  badgeCount?: number;
   onPress: () => void;
 };
 
@@ -61,6 +65,7 @@ function BottomTabButton({
   label,
   active,
   disabled,
+  badgeCount = 0,
   onPress,
 }: BottomTabButtonProps) {
   return (
@@ -86,6 +91,13 @@ function BottomTabButton({
         ]}>
         {label}
       </Text>
+      {badgeCount > 0 ? (
+        <View style={styles.bottomTabBadge}>
+          <Text style={styles.bottomTabBadgeText}>
+            {badgeCount > 99 ? '99+' : badgeCount}
+          </Text>
+        </View>
+      ) : null}
     </Pressable>
   );
 }

@@ -22,6 +22,7 @@ type CommunityDetailSheetProps = {
   userId: number;
   loading: boolean;
   showHandle: boolean;
+  onOpenAuthor: (authorId: number, authorName?: string | null) => void;
   onSaveRestaurant: (post: CommunityPost) => void;
   onToggleRecommendation: (post: CommunityPost) => void;
   onDeletePost: (post: CommunityPost) => void;
@@ -57,6 +58,7 @@ export function CommunityDetailSheet({
   userId,
   loading,
   showHandle,
+  onOpenAuthor,
   onSaveRestaurant,
   onToggleRecommendation,
   onDeletePost,
@@ -96,9 +98,20 @@ export function CommunityDetailSheet({
         <View style={styles.detailTopRow}>
           <View style={styles.restaurantTextGroup}>
             <Text style={styles.detailName}>{selectedPost.title}</Text>
-            <Text style={styles.restaurantMeta}>
-              {postAuthorName} · {formatDate(selectedPost.createdAt)}
-            </Text>
+            <View style={styles.authorMetaRow}>
+              <Pressable
+                hitSlop={8}
+                onPress={() =>
+                  onOpenAuthor(selectedPost.authorId, selectedPost.authorName)
+                }>
+                <Text style={[styles.restaurantMeta, styles.authorLink]}>
+                  {postAuthorName}
+                </Text>
+              </Pressable>
+              <Text style={styles.restaurantMeta}>
+                · {formatDate(selectedPost.createdAt)}
+              </Text>
+            </View>
           </View>
           <Pressable
             style={({pressed}) => [
@@ -285,10 +298,21 @@ export function CommunityDetailSheet({
               {comments.map(comment => (
                 <View key={comment.id} style={styles.commentItem}>
                   <View style={styles.detailTopRow}>
-                    <Text style={styles.restaurantMeta}>
-                      {(comment.authorName?.trim() || `작성자 ${comment.authorId}`)} ·{' '}
-                      {formatDate(comment.createdAt)}
-                    </Text>
+                    <View style={styles.authorMetaRow}>
+                      <Pressable
+                        hitSlop={8}
+                        onPress={() =>
+                          onOpenAuthor(comment.authorId, comment.authorName)
+                        }>
+                        <Text style={[styles.restaurantMeta, styles.authorLink]}>
+                          {comment.authorName?.trim() ||
+                            `작성자 ${comment.authorId}`}
+                        </Text>
+                      </Pressable>
+                      <Text style={styles.restaurantMeta}>
+                        · {formatDate(comment.createdAt)}
+                      </Text>
+                    </View>
                     {comment.authorId === userId ? (
                       <Pressable
                         style={({pressed}) => [

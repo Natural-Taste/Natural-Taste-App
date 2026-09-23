@@ -1,10 +1,14 @@
 import React from 'react';
-import {Pressable, Text, TextInput, View} from 'react-native';
+import {Pressable, ScrollView, Text, TextInput, View} from 'react-native';
 import {styles} from '../styles';
+import type {Notification} from '../types';
+import {formatDate} from '../utils/date';
 import {Field, PrimaryButton} from './Common';
 
 export function MapAccountSheet({
   userId,
+  notifications,
+  unreadNotificationCount,
   profileName,
   profileNameDraft,
   currentPassword,
@@ -12,6 +16,8 @@ export function MapAccountSheet({
   loading,
   onChangeProfileName,
   onUpdateProfile,
+  onMarkNotificationRead,
+  onMarkAllNotificationsRead,
   onChangeCurrentPassword,
   onChangeNewPassword,
   onChangePassword,
@@ -21,6 +27,8 @@ export function MapAccountSheet({
   showHandle = true,
 }: {
   userId: number;
+  notifications: Notification[];
+  unreadNotificationCount: number;
   profileName: string;
   profileNameDraft: string;
   currentPassword: string;
@@ -28,6 +36,8 @@ export function MapAccountSheet({
   loading: boolean;
   onChangeProfileName: (value: string) => void;
   onUpdateProfile: () => void;
+  onMarkNotificationRead: (notification: Notification) => void;
+  onMarkAllNotificationsRead: () => void;
   onChangeCurrentPassword: (value: string) => void;
   onChangeNewPassword: (value: string) => void;
   onChangePassword: () => void;
@@ -77,6 +87,51 @@ export function MapAccountSheet({
           </Pressable>
         </View>
       </Field>
+      <View style={styles.notificationSection}>
+        <View style={styles.notificationHeader}>
+          <Text style={styles.savedPlaceTitle}>
+            알림 {unreadNotificationCount > 0 ? `${unreadNotificationCount}개` : ''}
+          </Text>
+          {unreadNotificationCount > 0 ? (
+            <Pressable
+              style={({pressed}) => [
+                styles.smallActionButton,
+                pressed ? styles.pressed : null,
+                loading ? styles.disabled : null,
+              ]}
+              onPress={onMarkAllNotificationsRead}
+              disabled={loading}>
+              <Text style={styles.smallActionButtonText}>모두 읽음</Text>
+            </Pressable>
+          ) : null}
+        </View>
+        {notifications.length > 0 ? (
+          <ScrollView style={styles.notificationList}>
+            <View style={styles.savedPlaceList}>
+              {notifications.map(notification => (
+                <Pressable
+                  key={notification.id}
+                  style={({pressed}) => [
+                    styles.notificationItem,
+                    !notification.read ? styles.notificationItemUnread : null,
+                    pressed ? styles.pressed : null,
+                  ]}
+                  onPress={() => onMarkNotificationRead(notification)}>
+                  <View style={styles.restaurantTextGroup}>
+                    <Text style={styles.restaurantName}>{notification.message}</Text>
+                    <Text style={styles.restaurantMeta}>{formatDate(notification.createdAt)}</Text>
+                  </View>
+                  {!notification.read ? (
+                    <Text style={styles.notificationUnreadText}>새 알림</Text>
+                  ) : null}
+                </Pressable>
+              ))}
+            </View>
+          </ScrollView>
+        ) : (
+          <Text style={styles.savedPlaceEmpty}>아직 알림이 없습니다.</Text>
+        )}
+      </View>
       <Field label="현재 비밀번호">
         <TextInput
           style={styles.input}

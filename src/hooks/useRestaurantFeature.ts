@@ -17,6 +17,9 @@ export function useRestaurantFeature({auth, setLoading, setMessage}: UseRestaura
   const [savedRestaurants, setSavedRestaurants] = useState<Restaurant[]>([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [restaurantMemo, setRestaurantMemo] = useState('');
+  const [restaurantRating, setRestaurantRating] = useState<number | null>(null);
+  const [restaurantTags, setRestaurantTags] = useState('');
+  const [restaurantRevisit, setRestaurantRevisit] = useState<boolean | null>(null);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
 
@@ -52,6 +55,9 @@ export function useRestaurantFeature({auth, setLoading, setMessage}: UseRestaura
     setSavedRestaurants([]);
     setSelectedRestaurant(null);
     setRestaurantMemo('');
+    setRestaurantRating(null);
+    setRestaurantTags('');
+    setRestaurantRevisit(null);
     setUserLocation(null);
     setLocationLoading(false);
   };
@@ -193,10 +199,20 @@ export function useRestaurantFeature({auth, setLoading, setMessage}: UseRestaura
         );
         setSelectedRestaurant(current =>
           current && getRestaurantKey(current) === getRestaurantKey(restaurant)
-            ? {...current, saved: false}
+            ? {
+                ...current,
+                saved: false,
+                memo: null,
+                rating: null,
+                tags: null,
+                revisit: null,
+              }
             : current,
         );
         setRestaurantMemo('');
+        setRestaurantRating(null);
+        setRestaurantTags('');
+        setRestaurantRevisit(null);
         setMessage({tone: 'success', text: '저장을 취소했습니다.'});
         return;
       }
@@ -263,12 +279,69 @@ export function useRestaurantFeature({auth, setLoading, setMessage}: UseRestaura
     }
   };
 
+  const updateSavedRestaurantReview = async (restaurant: Restaurant) => {
+    if (!auth || restaurant.id === null) {
+      return;
+    }
+
+    if (restaurantRating === null) {
+      setMessage({tone: 'error', text: '별점을 선택해 주세요.'});
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const updated = await request<Restaurant>(
+        `/restaurants/saved/${restaurant.id}/review`,
+        {
+          method: 'PATCH',
+          auth,
+          body: {
+            rating: restaurantRating,
+            tags: restaurantTags.trim() || null,
+            revisit: restaurantRevisit,
+          },
+        },
+      );
+      const review = {
+        rating: updated.rating,
+        tags: updated.tags,
+        revisit: updated.revisit,
+      };
+      setSavedRestaurants(current =>
+        current.map(item => (item.id === updated.id ? {...item, ...review} : item)),
+      );
+      setRestaurants(current =>
+        current.map(item =>
+          item.id === updated.id ? {...item, ...review, saved: true} : item,
+        ),
+      );
+      setSelectedRestaurant(current =>
+        current?.id === updated.id ? {...current, ...review, saved: true} : current,
+      );
+      setRestaurantRating(updated.rating ?? null);
+      setRestaurantTags(updated.tags ?? '');
+      setRestaurantRevisit(updated.revisit ?? null);
+      setMessage({tone: 'success', text: '맛집 평가를 저장했습니다.'});
+    } catch (error) {
+      setMessage({
+        tone: 'error',
+        text: getErrorMessage(error, '맛집 평가 저장에 실패했습니다.'),
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     query,
     restaurants,
     savedRestaurants,
     selectedRestaurant,
     restaurantMemo,
+    restaurantRating,
+    restaurantTags,
+    restaurantRevisit,
     userLocation,
     locationLoading,
     savedIdSet,
@@ -278,11 +351,15 @@ export function useRestaurantFeature({auth, setLoading, setMessage}: UseRestaura
     setSavedRestaurants,
     setSelectedRestaurant,
     setRestaurantMemo,
+    setRestaurantRating,
+    setRestaurantTags,
+    setRestaurantRevisit,
     resetRestaurants,
     loadUserLocation,
     searchRestaurants,
     loadSavedRestaurants,
     toggleSaved,
     updateSavedRestaurantMemo,
+    updateSavedRestaurantReview,
   };
 }

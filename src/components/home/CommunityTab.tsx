@@ -26,6 +26,7 @@ type CommunityTabProps = {
   savedRestaurants: Restaurant[];
   userId: number;
   onSelectCommunityPost: (post: CommunityPost | null) => void;
+  onOpenCommunityAuthor: (authorId: number, authorName?: string | null) => void;
   onSaveCommunityRestaurant: (post: CommunityPost) => void;
   onToggleCommunityRecommendation: (post: CommunityPost) => void;
   onDeleteCommunityPost: (post: CommunityPost) => void;
@@ -72,6 +73,7 @@ export function CommunityTab({
   savedRestaurants,
   userId,
   onSelectCommunityPost,
+  onOpenCommunityAuthor,
   onSaveCommunityRestaurant,
   onToggleCommunityRecommendation,
   onDeleteCommunityPost,
@@ -124,6 +126,7 @@ export function CommunityTab({
         userId={userId}
         loading={loading}
         onSelectPost={onSelectCommunityPost}
+        onOpenAuthor={onOpenCommunityAuthor}
         onSaveRestaurant={onSaveCommunityRestaurant}
         onToggleRecommendation={onToggleCommunityRecommendation}
         onDeletePost={onDeleteCommunityPost}

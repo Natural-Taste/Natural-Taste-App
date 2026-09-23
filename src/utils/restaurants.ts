@@ -68,6 +68,22 @@ export function formatRestaurantDistance(
   return `${(distanceMeters / 1000).toFixed(1)}km`;
 }
 
+export function formatRestaurantReview(restaurant: Restaurant) {
+  const parts = [];
+
+  if (restaurant.rating) {
+    parts.push(`평가 ${restaurant.rating}점`);
+  }
+  if (restaurant.tags) {
+    parts.push(restaurant.tags);
+  }
+  if (restaurant.revisit !== null && restaurant.revisit !== undefined) {
+    parts.push(restaurant.revisit ? '재방문 의사 있음' : '재방문 의사 없음');
+  }
+
+  return parts.length > 0 ? parts.join(' · ') : null;
+}
+
 function getDistanceMeters(from: UserLocation, to: UserLocation) {
   const fromLatitude = toRadians(from.latitude);
   const toLatitude = toRadians(to.latitude);

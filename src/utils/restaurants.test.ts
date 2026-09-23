@@ -1,5 +1,5 @@
 import type {Restaurant} from '../types';
-import {formatRestaurantDistance} from './restaurants';
+import {formatRestaurantDistance, formatRestaurantReview} from './restaurants';
 
 const restaurant: Restaurant = {
   id: 1,
@@ -30,5 +30,34 @@ describe('formatRestaurantDistance', () => {
 
   it('returns null when user location is missing', () => {
     expect(formatRestaurantDistance(restaurant, null)).toBeNull();
+  });
+});
+
+describe('formatRestaurantReview', () => {
+  it('formats saved restaurant review fields', () => {
+    expect(
+      formatRestaurantReview({
+        id: 1,
+        name: '초밥집',
+        address: '서울시 강남구',
+        latitude: 37.5,
+        longitude: 127,
+        rating: 5,
+        tags: '혼밥, 재방문',
+        revisit: true,
+      }),
+    ).toBe('평가 5점 · 혼밥, 재방문 · 재방문 의사 있음');
+  });
+
+  it('returns null without review fields', () => {
+    expect(
+      formatRestaurantReview({
+        id: 1,
+        name: '초밥집',
+        address: '서울시 강남구',
+        latitude: 37.5,
+        longitude: 127,
+      }),
+    ).toBeNull();
   });
 });

@@ -2,7 +2,11 @@ import React, {useMemo, useState} from 'react';
 import {Pressable, ScrollView, Text, TextInput, View} from 'react-native';
 import {styles} from '../styles';
 import type {Restaurant, UserLocation} from '../types';
-import {formatRestaurantDistance, getRestaurantKey} from '../utils/restaurants';
+import {
+  formatRestaurantDistance,
+  formatRestaurantReview,
+  getRestaurantKey,
+} from '../utils/restaurants';
 import {PrimaryButton} from './Common';
 
 export function MapRestaurantSheet({
@@ -37,6 +41,7 @@ export function MapRestaurantSheet({
         restaurant.address,
         restaurant.category ?? '',
         restaurant.memo ?? '',
+        restaurant.tags ?? '',
       ]
         .join(' ')
         .toLowerCase()
@@ -71,6 +76,7 @@ export function MapRestaurantSheet({
               restaurant.saved ||
               (restaurant.id !== null && savedIdSet.has(restaurant.id));
             const distance = formatRestaurantDistance(restaurant, userLocation);
+            const review = formatRestaurantReview(restaurant);
 
             return (
               <Pressable
@@ -96,6 +102,11 @@ export function MapRestaurantSheet({
                   {restaurant.memo ? (
                     <Text style={styles.restaurantMeta} numberOfLines={1}>
                       메모 {restaurant.memo}
+                    </Text>
+                  ) : null}
+                  {review ? (
+                    <Text style={styles.restaurantReview} numberOfLines={1}>
+                      {review}
                     </Text>
                   ) : null}
                 </View>
@@ -129,21 +140,35 @@ export function MapRestaurantDetail({
   restaurant,
   saved,
   memo,
+  rating,
+  tags,
+  revisit,
   userLocation,
   loading,
   onToggleSaved,
   onChangeMemo,
   onUpdateMemo,
+  onChangeRating,
+  onChangeTags,
+  onChangeRevisit,
+  onUpdateReview,
   onClose,
 }: {
   restaurant: Restaurant;
   saved: boolean;
   memo: string;
+  rating: number | null;
+  tags: string;
+  revisit: boolean | null;
   userLocation: UserLocation | null;
   loading: boolean;
   onToggleSaved: (restaurant: Restaurant) => void;
   onChangeMemo: (value: string) => void;
   onUpdateMemo: (restaurant: Restaurant) => void;
+  onChangeRating: (value: number | null) => void;
+  onChangeTags: (value: string) => void;
+  onChangeRevisit: (value: boolean | null) => void;
+  onUpdateReview: (restaurant: Restaurant) => void;
   onClose: () => void;
 }) {
   const distance = formatRestaurantDistance(restaurant, userLocation);
@@ -196,6 +221,75 @@ export function MapRestaurantDetail({
             onPress={() => onUpdateMemo(restaurant)}
             disabled={loading}>
             <Text style={styles.smallActionButtonText}>메모 저장</Text>
+          </Pressable>
+          <Text style={styles.restaurantMeta}>내 평가</Text>
+          <View style={styles.ratingRow}>
+            {[1, 2, 3, 4, 5].map(value => (
+              <Pressable
+                key={value}
+                style={({pressed}) => [
+                  styles.ratingButton,
+                  rating === value ? styles.ratingButtonActive : null,
+                  pressed ? styles.pressed : null,
+                ]}
+                onPress={() => onChangeRating(value)}>
+                <Text
+                  style={[
+                    styles.ratingButtonText,
+                    rating === value ? styles.ratingButtonActiveText : null,
+                  ]}>
+                  {value}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          <TextInput
+            style={styles.input}
+            placeholder="태그 예: 혼밥, 데이트"
+            value={tags}
+            onChangeText={onChangeTags}
+          />
+          <View style={styles.revisitRow}>
+            <Pressable
+              style={({pressed}) => [
+                styles.secondaryButton,
+                revisit === true ? styles.secondaryButtonActive : null,
+                pressed ? styles.pressed : null,
+              ]}
+              onPress={() => onChangeRevisit(true)}>
+              <Text
+                style={[
+                  styles.secondaryButtonText,
+                  revisit === true ? styles.secondaryButtonActiveText : null,
+                ]}>
+                재방문 의사 있음
+              </Text>
+            </Pressable>
+            <Pressable
+              style={({pressed}) => [
+                styles.secondaryButton,
+                revisit === false ? styles.secondaryButtonActive : null,
+                pressed ? styles.pressed : null,
+              ]}
+              onPress={() => onChangeRevisit(false)}>
+              <Text
+                style={[
+                  styles.secondaryButtonText,
+                  revisit === false ? styles.secondaryButtonActiveText : null,
+                ]}>
+                없음
+              </Text>
+            </Pressable>
+          </View>
+          <Pressable
+            style={({pressed}) => [
+              styles.smallActionButton,
+              pressed ? styles.pressed : null,
+              loading ? styles.disabled : null,
+            ]}
+            onPress={() => onUpdateReview(restaurant)}
+            disabled={loading}>
+            <Text style={styles.smallActionButtonText}>평가 저장</Text>
           </Pressable>
         </View>
       ) : null}

@@ -26,6 +26,9 @@ export type Restaurant = {
   placeUrl?: string;
   saved?: boolean;
   memo?: string | null;
+  rating?: number | null;
+  tags?: string | null;
+  revisit?: boolean | null;
 };
 
 export type UserLocation = {
@@ -56,6 +59,16 @@ export type CommunityComment = {
   content: string;
   createdAt: string;
   updatedAt?: string;
+};
+
+export type Notification = {
+  id: number;
+  type: 'FRIEND_REQUEST' | 'COMMUNITY_COMMENT' | 'COMMUNITY_RECOMMENDATION';
+  actorId: number;
+  targetId: number;
+  message: string;
+  read: boolean;
+  createdAt: string;
 };
 
 export type ImageUploadResponse = {

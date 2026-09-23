@@ -11,6 +11,7 @@ type CommunityListSheetProps = {
   loading: boolean;
   showHandle: boolean;
   onSelectPost: (post: CommunityPost) => void;
+  onOpenAuthor: (authorId: number, authorName?: string | null) => void;
   onSaveRestaurant: (post: CommunityPost) => void;
   onStartPost: () => void;
 };
@@ -21,6 +22,7 @@ export function CommunityListSheet({
   loading,
   showHandle,
   onSelectPost,
+  onOpenAuthor,
   onSaveRestaurant,
   onStartPost,
 }: CommunityListSheetProps) {
@@ -100,9 +102,18 @@ export function CommunityListSheet({
                   <Text style={styles.restaurantMeta} numberOfLines={1}>
                     {post.restaurant.name}
                   </Text>
-                  <Text style={styles.postDate} numberOfLines={1}>
-                    {post.authorName?.trim() || `작성자 ${post.authorId}`}
-                  </Text>
+                  <Pressable
+                    hitSlop={8}
+                    onPress={event => {
+                      event.stopPropagation();
+                      onOpenAuthor(post.authorId, post.authorName);
+                    }}>
+                    <Text
+                      style={[styles.postDate, styles.authorLink]}
+                      numberOfLines={1}>
+                      {post.authorName?.trim() || `작성자 ${post.authorId}`}
+                    </Text>
+                  </Pressable>
                   <Text style={styles.restaurantAddress} numberOfLines={1}>
                     {post.restaurant.address}
                   </Text>

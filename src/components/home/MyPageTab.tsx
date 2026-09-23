@@ -1,7 +1,7 @@
 import React from 'react';
 import {View} from 'react-native';
 import {styles} from '../../styles';
-import type {Message} from '../../types';
+import type {Message, Notification} from '../../types';
 import {MapAccountSheet} from '../AccountSheet';
 import {TabScreenHeader} from './TabScreenHeader';
 
@@ -9,6 +9,8 @@ type MyPageTabProps = {
   message: Message;
   loading: boolean;
   userId: number;
+  notifications: Notification[];
+  unreadNotificationCount: number;
   currentPassword: string;
   newPassword: string;
   profileName: string;
@@ -18,6 +20,8 @@ type MyPageTabProps = {
   onChangePassword: () => void;
   onChangeProfileName: (value: string) => void;
   onUpdateProfile: () => void;
+  onMarkNotificationRead: (notification: Notification) => void;
+  onMarkAllNotificationsRead: () => void;
   onLogout: () => void;
   onDeleteUser: () => void;
 };
@@ -26,6 +30,8 @@ export function MyPageTab({
   message,
   loading,
   userId,
+  notifications,
+  unreadNotificationCount,
   currentPassword,
   newPassword,
   profileName,
@@ -35,6 +41,8 @@ export function MyPageTab({
   onChangePassword,
   onChangeProfileName,
   onUpdateProfile,
+  onMarkNotificationRead,
+  onMarkAllNotificationsRead,
   onLogout,
   onDeleteUser,
 }: MyPageTabProps) {
@@ -48,6 +56,8 @@ export function MyPageTab({
       />
       <MapAccountSheet
         userId={userId}
+        notifications={notifications}
+        unreadNotificationCount={unreadNotificationCount}
         profileName={profileName}
         profileNameDraft={profileNameDraft}
         currentPassword={currentPassword}
@@ -55,6 +65,8 @@ export function MyPageTab({
         loading={loading}
         onChangeProfileName={onChangeProfileName}
         onUpdateProfile={onUpdateProfile}
+        onMarkNotificationRead={onMarkNotificationRead}
+        onMarkAllNotificationsRead={onMarkAllNotificationsRead}
         onChangeCurrentPassword={onChangeCurrentPassword}
         onChangeNewPassword={onChangeNewPassword}
         onChangePassword={onChangePassword}

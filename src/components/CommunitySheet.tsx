@@ -24,6 +24,7 @@ type CommunitySheetProps = {
   userId: number;
   loading: boolean;
   onSelectPost: (post: CommunityPost) => void;
+  onOpenAuthor: (authorId: number, authorName?: string | null) => void;
   onSaveRestaurant: (post: CommunityPost) => void;
   onToggleRecommendation: (post: CommunityPost) => void;
   onDeletePost: (post: CommunityPost) => void;
@@ -71,6 +72,7 @@ export function CommunitySheet({
   userId,
   loading,
   onSelectPost,
+  onOpenAuthor,
   onSaveRestaurant,
   onToggleRecommendation,
   onDeletePost,
@@ -141,6 +143,7 @@ export function CommunitySheet({
         loading={loading}
         showHandle={showHandle}
         onSaveRestaurant={onSaveRestaurant}
+        onOpenAuthor={onOpenAuthor}
         onToggleRecommendation={onToggleRecommendation}
         onDeletePost={onDeletePost}
         onStartEditPost={onStartEditPost}
@@ -169,6 +172,7 @@ export function CommunitySheet({
       loading={loading}
       showHandle={showHandle}
       onSelectPost={onSelectPost}
+      onOpenAuthor={onOpenAuthor}
       onSaveRestaurant={onSaveRestaurant}
       onStartPost={onStartPost}
     />

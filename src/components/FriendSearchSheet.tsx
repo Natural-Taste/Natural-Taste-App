@@ -6,6 +6,7 @@ import {formatDate} from '../utils/date';
 import {
   findSavedRestaurant,
   formatRestaurantDistance,
+  formatRestaurantReview,
   getRestaurantKey,
 } from '../utils/restaurants';
 import {Field} from './Common';
@@ -83,6 +84,7 @@ export function FriendSearchSheet({
         restaurant.address,
         restaurant.category ?? '',
         restaurant.memo ?? '',
+        restaurant.tags ?? '',
       ]
         .join(' ')
         .toLowerCase()
@@ -317,6 +319,7 @@ export function FriendSearchSheet({
                   restaurant,
                   userLocation,
                 );
+                const review = formatRestaurantReview(restaurant);
 
                 return (
                   <View key={getRestaurantKey(restaurant)} style={styles.friendRestaurantRow}>
@@ -337,6 +340,11 @@ export function FriendSearchSheet({
                       <Text style={styles.restaurantAddress} numberOfLines={1}>
                         {restaurant.address}
                       </Text>
+                      {review ? (
+                        <Text style={styles.restaurantReview} numberOfLines={1}>
+                          {review}
+                        </Text>
+                      ) : null}
                     </View>
                     <Pressable
                       style={({pressed}) => [

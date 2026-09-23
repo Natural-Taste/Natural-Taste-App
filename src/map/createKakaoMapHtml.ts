@@ -53,6 +53,41 @@ export function createKakaoMapHtml(
       .label.selected {
         background: #23251F;
       }
+      .user-marker {
+        position: relative;
+        width: 18px;
+        height: 18px;
+        border: 3px solid #fff;
+        border-radius: 50%;
+        background: #2F80ED;
+        box-shadow: 0 4px 14px rgba(47, 128, 237, 0.45);
+        transform: translate(-50%, -50%);
+      }
+      .user-marker::before {
+        position: absolute;
+        top: -11px;
+        left: -11px;
+        width: 34px;
+        height: 34px;
+        border: 2px solid rgba(47, 128, 237, 0.35);
+        border-radius: 50%;
+        content: "";
+      }
+      .user-label {
+        margin-top: 10px;
+        padding: 6px 10px;
+        border: 2px solid #fff;
+        border-radius: 14px;
+        background: #2F80ED;
+        color: #fff;
+        font: 800 12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
+        transform: translate(-50%, 0);
+        white-space: nowrap;
+      }
+      .user-location {
+        transform: translate(0, -12px);
+      }
       .message {
         box-sizing: border-box;
         width: 100%;
@@ -109,7 +144,7 @@ export function createKakaoMapHtml(
 
               new kakao.maps.CustomOverlay({
                 position: userPosition,
-                content: '<div class="label selected">내 위치</div>',
+                content: '<div class="user-location"><div class="user-marker"></div><div class="user-label">내 위치</div></div>',
                 yAnchor: 1
               }).setMap(map);
             }

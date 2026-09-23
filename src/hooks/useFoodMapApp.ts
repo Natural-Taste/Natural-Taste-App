@@ -1,6 +1,7 @@
 import {useEffect, useRef, useState} from 'react';
 import {useCommunityFeature} from './useCommunityFeature';
 import {useFriendFeature} from './useFriendFeature';
+import {useNotificationFeature} from './useNotificationFeature';
 import {useRestaurantFeature} from './useRestaurantFeature';
 import {useColorScheme} from 'react-native';
 import {request, getErrorMessage, setUnauthorizedHandler} from '../api/client';
@@ -33,12 +34,16 @@ export function useFoodMapApp() {
   const [message, setMessage] = useState<Message>(emptyMessage);
   const loadSavedRestaurantsRef = useRef<(authOverride?: AuthResponse) => Promise<void>>(async () => {});
   const loadMyProfileRef = useRef<(authOverride?: AuthResponse) => Promise<void>>(async () => {});
+  const loadNotificationCountRef = useRef<(authOverride?: AuthResponse) => Promise<void>>(async () => {});
 
   const {
     query,
     savedRestaurants,
     selectedRestaurant,
     restaurantMemo,
+    restaurantRating,
+    restaurantTags,
+    restaurantRevisit,
     userLocation,
     locationLoading,
     savedIdSet,
@@ -48,12 +53,16 @@ export function useFoodMapApp() {
     setSavedRestaurants,
     setSelectedRestaurant,
     setRestaurantMemo,
+    setRestaurantRating,
+    setRestaurantTags,
+    setRestaurantRevisit,
     resetRestaurants,
     loadUserLocation,
     searchRestaurants,
     loadSavedRestaurants,
     toggleSaved,
     updateSavedRestaurantMemo,
+    updateSavedRestaurantReview,
   } = useRestaurantFeature({auth, setLoading, setMessage});
 
   loadSavedRestaurantsRef.current = loadSavedRestaurants;
@@ -80,8 +89,20 @@ export function useFoodMapApp() {
     cancelSentFriendRequest,
     deleteFriend,
     selectFriend,
+    searchUsersByQuery,
   } = useFriendFeature({auth, setLoading, setMessage});
 
+  const {
+    notifications,
+    unreadNotificationCount,
+    resetNotifications,
+    loadNotificationCount,
+    loadNotifications,
+    markNotificationRead,
+    markAllNotificationsRead,
+  } = useNotificationFeature({auth, setMessage});
+
+  loadNotificationCountRef.current = loadNotificationCount;
 
   const {
     communityPosts,
@@ -147,6 +168,7 @@ export function useFoodMapApp() {
     setActivePanel('map');
     resetCommunityState();
     resetFriendState();
+    resetNotifications();
     if (messageOverride) {
       setMessage(messageOverride);
     }
@@ -166,6 +188,7 @@ export function useFoodMapApp() {
         setAuth(storedAuth);
         await loadSavedRestaurantsRef.current(storedAuth);
         await loadMyProfileRef.current(storedAuth);
+        await loadNotificationCountRef.current(storedAuth);
       } catch {
         await clearStoredAuth();
       } finally {
@@ -211,6 +234,7 @@ export function useFoodMapApp() {
       setAuth(data);
       await saveStoredAuth(data);
       await loadMyProfile(data);
+      await loadNotificationCount(data);
       setPassword('');
       setCurrentPassword('');
       setNewPassword('');
@@ -360,11 +384,40 @@ export function useFoodMapApp() {
     await Promise.all([loadFriendRequests(), loadSentFriendRequests(), loadFriends()]);
   };
 
+  const openCommunityAuthor = async (authorId: number, authorName?: string | null) => {
+    resetCommunitySelection();
+    if (authorId === auth?.userId) {
+      openMyPage();
+      return;
+    }
+
+    setSelectedRestaurant(null);
+    setActivePanel('search');
+    const [, , loadedFriends] = await Promise.all([
+      loadFriendRequests(),
+      loadSentFriendRequests(),
+      loadFriends(),
+    ]);
+
+    const friend = loadedFriends.find(item => item.id === authorId);
+    if (friend) {
+      await selectFriend(friend);
+      return;
+    }
+
+    const authorQuery = authorName?.trim() || String(authorId);
+    setUserSearchQuery(authorQuery);
+    await searchUsersByQuery(authorQuery);
+  };
+
   const selectRestaurant = (restaurant: Restaurant) => {
     const savedRestaurant = findSavedRestaurant(restaurant, savedRestaurants);
     setActivePanel('map');
     setSelectedRestaurant(savedRestaurant ?? restaurant);
     setRestaurantMemo((savedRestaurant ?? restaurant).memo ?? '');
+    setRestaurantRating((savedRestaurant ?? restaurant).rating ?? null);
+    setRestaurantTags((savedRestaurant ?? restaurant).tags ?? '');
+    setRestaurantRevisit((savedRestaurant ?? restaurant).revisit ?? null);
   };
 
   const openMap = () => {
@@ -379,6 +432,7 @@ export function useFoodMapApp() {
     setFriendRestaurants([]);
     setActivePanel('mypage');
     loadMyProfile();
+    loadNotifications();
   };
 
   return {
@@ -404,6 +458,9 @@ export function useFoodMapApp() {
       savedRestaurants,
       selectedRestaurant,
       restaurantMemo,
+      restaurantRating,
+      restaurantTags,
+      restaurantRevisit,
       userLocation,
       locationLoading,
       communityPosts,
@@ -428,6 +485,8 @@ export function useFoodMapApp() {
       friends,
       selectedFriend,
       friendRestaurants,
+      notifications,
+      unreadNotificationCount,
       savedIdSet,
       activePanel,
       userId: auth?.userId ?? 0,
@@ -442,6 +501,10 @@ export function useFoodMapApp() {
       onToggleSaved: toggleSaved,
       onChangeRestaurantMemo: setRestaurantMemo,
       onUpdateRestaurantMemo: updateSavedRestaurantMemo,
+      onChangeRestaurantRating: setRestaurantRating,
+      onChangeRestaurantTags: setRestaurantTags,
+      onChangeRestaurantRevisit: setRestaurantRevisit,
+      onUpdateRestaurantReview: updateSavedRestaurantReview,
       onOpenMap: openMap,
       onOpenCommunity: openCommunity,
       onOpenSearch: openSearch,
@@ -452,8 +515,11 @@ export function useFoodMapApp() {
       onCancelSentFriendRequest: cancelSentFriendRequest,
       onDeleteFriend: deleteFriend,
       onSelectFriend: selectFriend,
+      onMarkNotificationRead: markNotificationRead,
+      onMarkAllNotificationsRead: markAllNotificationsRead,
       onChangeUserSearchQuery: setUserSearchQuery,
       onSelectCommunityPost: selectCommunityPost,
+      onOpenCommunityAuthor: openCommunityAuthor,
       onSaveCommunityRestaurant: saveCommunityRestaurant,
       onToggleCommunityRecommendation: toggleCommunityRecommendation,
       onDeleteCommunityPost: deleteCommunityPost,

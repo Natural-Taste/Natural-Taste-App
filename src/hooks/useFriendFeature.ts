@@ -38,8 +38,9 @@ export function useFriendFeature({auth, setLoading, setMessage}: UseFriendFeatur
     );
   };
 
-  const searchUsers = async () => {
-    if (!auth || !userSearchQuery.trim()) {
+  const searchUsersByQuery = async (query: string) => {
+    const trimmedQuery = query.trim();
+    if (!auth || !trimmedQuery) {
       setMessage({tone: 'error', text: '사용자 검색어를 입력해 주세요.'});
       return;
     }
@@ -47,7 +48,7 @@ export function useFriendFeature({auth, setLoading, setMessage}: UseFriendFeatur
     setLoading(true);
     try {
       const data = await request<FriendUser[]>(
-        `/users/search?query=${encodeURIComponent(userSearchQuery.trim())}`,
+        `/users/search?query=${encodeURIComponent(trimmedQuery)}`,
         {auth},
       );
       setSearchedUsers(data);
@@ -66,6 +67,10 @@ export function useFriendFeature({auth, setLoading, setMessage}: UseFriendFeatur
     } finally {
       setLoading(false);
     }
+  };
+
+  const searchUsers = async () => {
+    await searchUsersByQuery(userSearchQuery);
   };
 
   const requestFriend = async (user: FriendUser) => {
@@ -134,17 +139,19 @@ export function useFriendFeature({auth, setLoading, setMessage}: UseFriendFeatur
 
   const loadFriends = async () => {
     if (!auth) {
-      return;
+      return [];
     }
 
     try {
       const data = await request<FriendUser[]>('/friends', {auth});
       setFriends(data);
+      return data;
     } catch (error) {
       setMessage({
         tone: 'error',
         text: getErrorMessage(error, '친구 목록 조회에 실패했습니다.'),
       });
+      return [];
     }
   };
 
@@ -300,6 +307,7 @@ export function useFriendFeature({auth, setLoading, setMessage}: UseFriendFeatur
     setFriendRestaurants,
     resetFriendState,
     searchUsers,
+    searchUsersByQuery,
     requestFriend,
     loadFriendRequests,
     loadSentFriendRequests,

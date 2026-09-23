@@ -14,6 +14,9 @@ type MapTabProps = {
   savedRestaurants: Restaurant[];
   selectedRestaurant: Restaurant | null;
   restaurantMemo: string;
+  restaurantRating: number | null;
+  restaurantTags: string;
+  restaurantRevisit: boolean | null;
   userLocation: UserLocation | null;
   locationLoading: boolean;
   savedIdSet: Set<number>;
@@ -24,6 +27,10 @@ type MapTabProps = {
   onToggleSaved: (restaurant: Restaurant) => void;
   onChangeRestaurantMemo: (value: string) => void;
   onUpdateRestaurantMemo: (restaurant: Restaurant) => void;
+  onChangeRestaurantRating: (value: number | null) => void;
+  onChangeRestaurantTags: (value: string) => void;
+  onChangeRestaurantRevisit: (value: boolean | null) => void;
+  onUpdateRestaurantReview: (restaurant: Restaurant) => void;
   onCloseDetail: () => void;
 };
 
@@ -35,6 +42,9 @@ export function MapTab({
   savedRestaurants,
   selectedRestaurant,
   restaurantMemo,
+  restaurantRating,
+  restaurantTags,
+  restaurantRevisit,
   userLocation,
   locationLoading,
   savedIdSet,
@@ -45,6 +55,10 @@ export function MapTab({
   onToggleSaved,
   onChangeRestaurantMemo,
   onUpdateRestaurantMemo,
+  onChangeRestaurantRating,
+  onChangeRestaurantTags,
+  onChangeRestaurantRevisit,
+  onUpdateRestaurantReview,
   onCloseDetail,
 }: MapTabProps) {
   const {height} = useWindowDimensions();
@@ -146,11 +160,18 @@ export function MapTab({
             restaurant={detailRestaurant}
             saved={Boolean(detailRestaurant.saved || savedSelectedRestaurant)}
             memo={restaurantMemo}
+            rating={restaurantRating}
+            tags={restaurantTags}
+            revisit={restaurantRevisit}
             userLocation={userLocation}
             loading={loading}
             onToggleSaved={onToggleSaved}
             onChangeMemo={onChangeRestaurantMemo}
             onUpdateMemo={onUpdateRestaurantMemo}
+            onChangeRating={onChangeRestaurantRating}
+            onChangeTags={onChangeRestaurantTags}
+            onChangeRevisit={onChangeRestaurantRevisit}
+            onUpdateReview={onUpdateRestaurantReview}
             onClose={onCloseDetail}
           />
         ) : (

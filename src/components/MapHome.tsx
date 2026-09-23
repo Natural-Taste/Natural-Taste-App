@@ -8,6 +8,7 @@ import type {
   FriendRequest,
   FriendUser,
   Message,
+  Notification,
   Restaurant,
   UserLocation,
 } from '../types';
@@ -25,6 +26,9 @@ type MapHomeProps = {
   savedRestaurants: Restaurant[];
   selectedRestaurant: Restaurant | null;
   restaurantMemo: string;
+  restaurantRating: number | null;
+  restaurantTags: string;
+  restaurantRevisit: boolean | null;
   userLocation: UserLocation | null;
   locationLoading: boolean;
   communityPosts: CommunityPost[];
@@ -49,6 +53,8 @@ type MapHomeProps = {
   friends: FriendUser[];
   selectedFriend: FriendUser | null;
   friendRestaurants: Restaurant[];
+  notifications: Notification[];
+  unreadNotificationCount: number;
   savedIdSet: Set<number>;
   activePanel: ActivePanel;
   userId: number;
@@ -63,6 +69,10 @@ type MapHomeProps = {
   onToggleSaved: (restaurant: Restaurant) => void;
   onChangeRestaurantMemo: (value: string) => void;
   onUpdateRestaurantMemo: (restaurant: Restaurant) => void;
+  onChangeRestaurantRating: (value: number | null) => void;
+  onChangeRestaurantTags: (value: string) => void;
+  onChangeRestaurantRevisit: (value: boolean | null) => void;
+  onUpdateRestaurantReview: (restaurant: Restaurant) => void;
   onOpenMap: () => void;
   onOpenCommunity: () => void;
   onOpenSearch: () => void;
@@ -73,8 +83,11 @@ type MapHomeProps = {
   onCancelSentFriendRequest: (request: FriendRequest) => void;
   onDeleteFriend: (friend: FriendUser) => void;
   onSelectFriend: (friend: FriendUser | null) => void;
+  onMarkNotificationRead: (notification: Notification) => void;
+  onMarkAllNotificationsRead: () => void;
   onChangeUserSearchQuery: (value: string) => void;
   onSelectCommunityPost: (post: CommunityPost | null) => void;
+  onOpenCommunityAuthor: (authorId: number, authorName?: string | null) => void;
   onSaveCommunityRestaurant: (post: CommunityPost) => void;
   onToggleCommunityRecommendation: (post: CommunityPost) => void;
   onDeleteCommunityPost: (post: CommunityPost) => void;
@@ -121,6 +134,9 @@ export function MapHome(props: MapHomeProps) {
           savedRestaurants={props.savedRestaurants}
           selectedRestaurant={props.selectedRestaurant}
           restaurantMemo={props.restaurantMemo}
+          restaurantRating={props.restaurantRating}
+          restaurantTags={props.restaurantTags}
+          restaurantRevisit={props.restaurantRevisit}
           userLocation={props.userLocation}
           locationLoading={props.locationLoading}
           savedIdSet={props.savedIdSet}
@@ -131,6 +147,10 @@ export function MapHome(props: MapHomeProps) {
           onToggleSaved={props.onToggleSaved}
           onChangeRestaurantMemo={props.onChangeRestaurantMemo}
           onUpdateRestaurantMemo={props.onUpdateRestaurantMemo}
+          onChangeRestaurantRating={props.onChangeRestaurantRating}
+          onChangeRestaurantTags={props.onChangeRestaurantTags}
+          onChangeRestaurantRevisit={props.onChangeRestaurantRevisit}
+          onUpdateRestaurantReview={props.onUpdateRestaurantReview}
           onCloseDetail={props.onCloseDetail}
         />
       ) : props.activePanel === 'community' ? (
@@ -155,6 +175,7 @@ export function MapHome(props: MapHomeProps) {
           savedRestaurants={props.savedRestaurants}
           userId={props.userId}
           onSelectCommunityPost={props.onSelectCommunityPost}
+          onOpenCommunityAuthor={props.onOpenCommunityAuthor}
           onSaveCommunityRestaurant={props.onSaveCommunityRestaurant}
           onToggleCommunityRecommendation={props.onToggleCommunityRecommendation}
           onDeleteCommunityPost={props.onDeleteCommunityPost}
@@ -207,6 +228,8 @@ export function MapHome(props: MapHomeProps) {
           message={props.message}
           loading={props.loading}
           userId={props.userId}
+          notifications={props.notifications}
+          unreadNotificationCount={props.unreadNotificationCount}
           currentPassword={props.currentPassword}
           newPassword={props.newPassword}
           profileName={props.profileName}
@@ -216,6 +239,8 @@ export function MapHome(props: MapHomeProps) {
           onChangePassword={props.onChangePassword}
           onChangeProfileName={props.onChangeProfileName}
           onUpdateProfile={props.onUpdateProfile}
+          onMarkNotificationRead={props.onMarkNotificationRead}
+          onMarkAllNotificationsRead={props.onMarkAllNotificationsRead}
           onLogout={props.onLogout}
           onDeleteUser={props.onDeleteUser}
         />
@@ -224,6 +249,7 @@ export function MapHome(props: MapHomeProps) {
       <BottomTabBar
         activePanel={props.activePanel}
         loading={props.loading}
+        unreadNotificationCount={props.unreadNotificationCount}
         onOpenMap={props.onOpenMap}
         onOpenCommunity={props.onOpenCommunity}
         onOpenSearch={props.onOpenSearch}

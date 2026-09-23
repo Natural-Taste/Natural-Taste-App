@@ -209,6 +209,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 48,
     paddingVertical: 8,
+    position: 'relative',
   },
   bottomTabButtonActive: {
     backgroundColor: '#EEF4EC',
@@ -229,6 +230,23 @@ export const styles = StyleSheet.create({
   },
   bottomTabButtonTextActive: {
     color: '#23251F',
+  },
+  bottomTabBadge: {
+    alignItems: 'center',
+    backgroundColor: '#B42318',
+    borderRadius: 9,
+    justifyContent: 'center',
+    minWidth: 18,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    position: 'absolute',
+    right: 14,
+    top: 6,
+  },
+  bottomTabBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '900',
   },
   sheetHandle: {
     alignSelf: 'center',
@@ -367,6 +385,37 @@ export const styles = StyleSheet.create({
     minHeight: 120,
     padding: 16,
   },
+  notificationSection: {
+    marginBottom: 16,
+  },
+  notificationHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  notificationList: {
+    maxHeight: 180,
+  },
+  notificationItem: {
+    alignItems: 'center',
+    backgroundColor: '#FCFBF7',
+    borderColor: '#E4E0D5',
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    padding: 12,
+  },
+  notificationItemUnread: {
+    backgroundColor: '#EEF4EC',
+    borderColor: '#C8D7C3',
+  },
+  notificationUnreadText: {
+    color: '#49624A',
+    fontSize: 12,
+    fontWeight: '900',
+  },
   friendSection: {
     marginBottom: 18,
   },
@@ -482,6 +531,16 @@ export const styles = StyleSheet.create({
     gap: 12,
     justifyContent: 'space-between',
     marginBottom: 12,
+  },
+  authorMetaRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+  },
+  authorLink: {
+    color: '#49624A',
+    textDecorationLine: 'underline',
   },
   closeButton: {
     borderColor: '#C9C2B0',
@@ -775,6 +834,11 @@ export const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
   },
+  restaurantReview: {
+    color: '#8A5A28',
+    fontSize: 13,
+    fontWeight: '800',
+  },
   restaurantAddress: {
     color: '#676B5E',
     fontSize: 13,
@@ -805,6 +869,36 @@ export const styles = StyleSheet.create({
   memoInput: {
     minHeight: 72,
     textAlignVertical: 'top',
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  ratingButton: {
+    alignItems: 'center',
+    borderColor: '#C9C2B0',
+    borderRadius: 8,
+    borderWidth: 1,
+    height: 38,
+    justifyContent: 'center',
+    width: 38,
+  },
+  ratingButtonActive: {
+    backgroundColor: '#49624A',
+    borderColor: '#49624A',
+  },
+  ratingButtonText: {
+    color: '#49624A',
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  ratingButtonActiveText: {
+    color: '#FFFFFF',
+  },
+  revisitRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
   },
   postContent: {
     color: '#3F4438',
